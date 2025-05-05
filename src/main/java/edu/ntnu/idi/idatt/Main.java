@@ -14,7 +14,7 @@ public class Main extends Application {
     // Create the model
     BoardGame game = new BoardGame();
     game.createBoard();
-    game.createDice();
+    game.createDice(1);
 
     // Create default players for testing
     Player player1 = new Player("Player 1", game, "TopHat");

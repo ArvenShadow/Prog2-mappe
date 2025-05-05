@@ -28,6 +28,8 @@ public class Player {
 
     // Find target tile by following next tile links
     Tile targetTile = currentTile;
+    Tile oldTile = currentTile;
+
     for (int i = 0; i < steps; i++) {
       if (targetTile.getNextTile() != null) {
         targetTile = targetTile.getNextTile();
@@ -37,14 +39,12 @@ public class Player {
       }
     }
 
-    // Store old tile for event notification
-    Tile oldTile = currentTile;
-
     // Move to the new tile
     placeOnTile(targetTile);
 
     // Notify that player has moved (needed for animation)
-    game.notifyObservers(new GameEvent(GameEvent.EventType.PLAYER_MOVED, this, oldTile, targetTile));
+    game.notifyObservers(new GameEvent(GameEvent.EventType.PLAYER_MOVED,
+      this, oldTile, targetTile));
 
     // After movement is complete, perform any tile actions
     targetTile.landAction(this);

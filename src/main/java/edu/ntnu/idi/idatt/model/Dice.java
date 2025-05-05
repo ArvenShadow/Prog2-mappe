@@ -54,6 +54,7 @@ public class Dice {
 
     /**
      * Changes the number of dice, creating a new collection.
+     * Preserves existing dice values where possible.
      *
      * @param numberOfDice The new number of dice
      * @throws IllegalArgumentException if numberOfDice is less than 1 or greater than MAX_DICE
@@ -66,11 +67,34 @@ public class Dice {
             throw new IllegalArgumentException("Maximum number of dice is " + MAX_DICE);
         }
 
-        // Create a new dice collection
-        this.dice = new ArrayList<>();
-        for (int i = 0; i < numberOfDice; i++) {
-            dice.add(new Die());
+        // Store current dice values to preserve them if possible
+        int[] currentValues = new int[dice.size()];
+        for (int i = 0; i < dice.size(); i++) {
+            currentValues[i] = dice.get(i).getValue();
         }
+
+        // Create a new dice collection
+        List<Die> newDice = new ArrayList<>();
+
+        // Add dice with preserved values for existing dice
+        for (int i = 0; i < numberOfDice; i++) {
+            Die die;
+            if (i < currentValues.length) {
+                // Preserve value from existing die
+                die = new Die();
+                // We need to set the value explicitly since the constructor rolls
+                // This is a bit of a hack, but works for our purposes
+                for (int j = 0; j < 10 && die.getValue() != currentValues[i]; j++) {
+                    die.roll(); // Roll until we get the desired value or give up after 10 tries
+                }
+            } else {
+                // New die with random value
+                die = new Die();
+            }
+            newDice.add(die);
+        }
+
+        this.dice = newDice;
     }
 
     /**

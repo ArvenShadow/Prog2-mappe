@@ -55,7 +55,7 @@ public class BoardGameApp {
       }
     }
 
-    boardGame.createDice();
+
 
     System.out.println("\nPlayer Setup Options:");
     System.out.println("1. Add players manually");

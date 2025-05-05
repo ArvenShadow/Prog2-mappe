@@ -49,6 +49,13 @@ public class BoardGame implements ObservableGame {
     winner = null;
     currentPlayerIndex = 0;
 
+    // Set the current player to the first player if there are any players
+    if (!players.isEmpty()) {
+      currentPlayer = players.get(0);
+    } else {
+      currentPlayer = null;
+    }
+
     // Reset player positions
     if (board != null) {
       Tile startTile = board.getTile(1);
@@ -61,58 +68,115 @@ public class BoardGame implements ObservableGame {
     notifyObservers(new GameEvent(GameEvent.EventType.GAME_RESET, null, null, null));
   }
 
+  // In BoardGame class
   public void playOneRound() {
     if (gameFinished || players.isEmpty()) {
       return;
     }
 
-    // Set current player
-    currentPlayer = players.get(currentPlayerIndex);
+    // Ensure current player is set
+    if (currentPlayer == null && !players.isEmpty()) {
+      currentPlayerIndex = 0;
+      currentPlayer = players.get(currentPlayerIndex);
+    }
+
+    // Keep a reference to the active player
+    Player activePlayer = currentPlayer;
 
     // Roll the dice
     int roll = dice.Roll();
 
     // Notify that dice have been rolled
-    notifyObservers(new GameEvent(GameEvent.EventType.DICE_ROLLED, currentPlayer, null, null, roll));
+    notifyObservers(new GameEvent(GameEvent.EventType.DICE_ROLLED,
+      activePlayer, null, null, roll));
 
     try {
       // Store current tile before moving
-      Tile oldTile = currentPlayer.getCurrentTile();
+      Tile oldTile = activePlayer.getCurrentTile();
 
       // Move player
-      currentPlayer.move(roll);
+      activePlayer.move(roll);
 
       // Check if player won
-      if (currentPlayer.hasWon(finalTileId)) {
+      if (activePlayer.hasWon(finalTileId)) {
         gameFinished = true;
-        winner = currentPlayer;
+        winner = activePlayer;
 
         // Notify of game over
-        notifyObservers(new GameEvent(GameEvent.EventType.GAME_OVER, currentPlayer, oldTile, currentPlayer.getCurrentTile()));
+        notifyObservers(new GameEvent(GameEvent.EventType.GAME_OVER,
+          activePlayer, oldTile, activePlayer.getCurrentTile()));
       }
 
-      // Move to next player
-      currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
-
+      // Move to next player - ONLY DO THIS ONCE
+      if (!gameFinished) {
+        moveToNextPlayer();
+      }
     } catch (Exception e) {
       System.err.println("Error during player move: " + e.getMessage());
-
-      // Move to next player even if there was an error
-      currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+      e.printStackTrace();
     }
   }
 
   public void moveToNextPlayer() {
-    if (players.isEmpty()) return;
-
-    int nextIndex = 0;
-    if (currentPlayer != null) {
-      int currentIndex = players.indexOf(currentPlayer);
-      nextIndex = (currentIndex + 1) % players.size();
+    if (players.isEmpty()) {
+      currentPlayer = null;
+      currentPlayerIndex = 0;
+      return;
     }
 
-    currentPlayer = players.get(nextIndex);
-    System.out.println("Next player: " + currentPlayer.getName());
+    // Increment the player index and wrap around if needed
+    currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+    currentPlayer = players.get(currentPlayerIndex);
+
+    System.out.println("Next player is now: " + currentPlayer.getName() +
+      " (index " + currentPlayerIndex + ")");
+  }
+
+  // Add a method to help debug the player sequence
+  public void debugPlayerSequence() {
+    System.out.println("---------- PLAYER SEQUENCE DEBUG ----------");
+    System.out.println("Total players: " + players.size());
+    System.out.println("Current player index: " + currentPlayerIndex);
+    System.out.println("Current player: " +
+      (currentPlayer != null ? currentPlayer.getName() : "null"));
+
+    for (int i = 0; i < players.size(); i++) {
+      System.out.println("Player " + i + ": " + players.get(i).getName() +
+        (i == currentPlayerIndex ? " (CURRENT)" : ""));
+    }
+    System.out.println("------------------------------------------");
+  }
+
+  /**
+   * Changes the number of dice used in the game.
+   * @param numberOfDice The new number of dice
+   */
+  public void changeDiceCount(int numberOfDice) {
+    if (dice == null) {
+      // No dice exist yet, create new ones
+      createDice(numberOfDice);
+    } else {
+      // Update existing dice
+      dice.setNumberOfDice(numberOfDice);
+
+      // Create a dice rolled event to update UI
+      if (!players.isEmpty() && currentPlayer != null) {
+        // Get the current dice values to display
+        int total = 0;
+        for (int i = 0; i < dice.getNumberOfDice(); i++) {
+          total += dice.getDieValue(i);
+        }
+
+        // Notify observers that dice configuration changed
+        notifyObservers(new GameEvent(
+          GameEvent.EventType.DICE_ROLLED,
+          currentPlayer,
+          null,
+          null,
+          total
+        ));
+      }
+    }
   }
 
   public boolean isFinished() {

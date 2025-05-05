@@ -1,3 +1,5 @@
+package edu.ntnu.idi.idatt.action;
+
 import edu.ntnu.idi.idatt.event.GameEvent;
 import edu.ntnu.idi.idatt.model.BoardGame;
 import edu.ntnu.idi.idatt.model.Player;

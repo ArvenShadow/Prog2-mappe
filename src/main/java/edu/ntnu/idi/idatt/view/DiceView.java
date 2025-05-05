@@ -132,6 +132,8 @@ public class DiceView extends Group {
     totalText.setText("Total: " + getTotal());
   }
 
+
+
   /**
    * Gets the number of dice.
    *

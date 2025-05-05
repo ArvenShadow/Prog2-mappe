@@ -27,6 +27,7 @@ import javafx.util.Duration;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -80,6 +81,9 @@ public class GameController implements BoardGameObserver {
     newGameButton = new Button("New Game");
     newGameButton.setOnAction(e -> showNewGameDialog());
 
+    Button settingsButton = new Button("Settings");
+    settingsButton.setOnAction(e -> showSettingsDialog());
+
     Button loadGameButton = new Button("Load Game");
     loadGameButton.setOnAction(e -> handleLoadGame());
 
@@ -87,7 +91,7 @@ public class GameController implements BoardGameObserver {
     saveGameButton.setOnAction(e -> handleSaveGame());
 
     // Create controls box
-    HBox controlsBox = new HBox(10, rollButton, newGameButton, loadGameButton, saveGameButton);
+    HBox controlsBox = new HBox(10, rollButton, newGameButton, settingsButton, loadGameButton, saveGameButton);
     controlsBox.setAlignment(Pos.CENTER);
     controlsBox.setPadding(new Insets(10));
 
@@ -107,6 +111,72 @@ public class GameController implements BoardGameObserver {
 
     // Set padding for main layout
     rootPane.setPadding(new Insets(10));
+  }
+
+  private void showSettingsDialog() {
+    // Create a dialog for game settings
+    Dialog<ButtonType> dialog = new Dialog<>();
+    dialog.setTitle("Game Settings");
+    dialog.setHeaderText("Adjust game settings");
+
+    // Set the button types
+    ButtonType applyButtonType = new ButtonType("Apply", ButtonBar.ButtonData.OK_DONE);
+    dialog.getDialogPane().getButtonTypes().addAll(applyButtonType, ButtonType.CANCEL);
+
+    // Create the settings grid
+    GridPane grid = new GridPane();
+    grid.setHgap(10);
+    grid.setVgap(10);
+    grid.setPadding(new Insets(20, 150, 10, 10));
+
+    // Dice count selector
+    Label diceLabel = new Label("Number of Dice:");
+    int currentDiceCount = game.getDice() != null ? game.getDice().getNumberOfDice() : 2;
+    Spinner<Integer> diceSpinner = new Spinner<>(1, Dice.getMaxDice(), currentDiceCount);
+    diceSpinner.setEditable(true);
+
+    grid.add(diceLabel, 0, 0);
+    grid.add(diceSpinner, 1, 0);
+
+    // Player token display (read-only)
+    Label playerLabel = new Label("Current Players:");
+    grid.add(playerLabel, 0, 1);
+
+    VBox playersBox = new VBox(5);
+    for (Player player : game.getPlayers()) {
+      HBox playerInfo = new HBox(10);
+      playerInfo.getChildren().addAll(
+        new Label(player.getName() + ":"),
+        new Label(player.getTokenType())
+      );
+      playersBox.getChildren().add(playerInfo);
+    }
+    grid.add(playersBox, 0, 2, 2, 1);
+
+    dialog.getDialogPane().setContent(grid);
+
+    // Show dialog and handle result
+    Optional<ButtonType> result = dialog.showAndWait();
+    if (result.isPresent() && result.get() == applyButtonType) {
+      // Apply settings changes
+      int newDiceCount = diceSpinner.getValue();
+
+      // Only apply changes if dice count is different
+      if (game.getDice() != null && newDiceCount != game.getDice().getNumberOfDice()) {
+        try {
+          // Update the model
+          game.getDice().setNumberOfDice(newDiceCount);
+
+          // Update the view
+          diceView.setDiceCount(newDiceCount);
+
+          // Update status
+          statusText.setText("Number of dice changed to " + newDiceCount);
+        } catch (Exception e) {
+          showErrorAlert("Settings Error", "Error changing dice count", e.getMessage());
+        }
+      }
+    }
   }
 
 
@@ -195,17 +265,6 @@ public class GameController implements BoardGameObserver {
     // Request focus on the first field
     Platform.runLater(() -> nameFields.get(0).requestFocus());
 
-    // Create a class to hold the settings
-    class NewGameSettings {
-      final int diceCount;
-      final List<Player> players;
-
-      NewGameSettings(int diceCount, List<Player> players) {
-        this.diceCount = diceCount;
-        this.players = players;
-      }
-    }
-
     // Convert the result to game settings when dialog is confirmed
     dialog.setResultConverter(dialogButton -> {
       if (dialogButton == startButtonType) {
@@ -265,9 +324,6 @@ public class GameController implements BoardGameObserver {
         game.createBoard();
       }
 
-      // Create dice if they don't exist
-      if (game.getDice() == null)
-
       // Update the board view
       boardView.setBoard(game.getBoard());
 
@@ -288,14 +344,23 @@ public class GameController implements BoardGameObserver {
       rootPane.setRight(playerInfoView);
 
       // Update status
-      statusText.setText("New game started! " +
-        (game.getPlayers().isEmpty() ? "Add players to begin." : "Roll the dice to start."));
+      if (game.getPlayers().isEmpty()) {
+        statusText.setText("New game started! Add players to begin.");
+      } else {
+        Player currentPlayer = game.getCurrentPlayer();
+        if (currentPlayer != null) {
+          statusText.setText("New game started! " + currentPlayer.getName() + " goes first.");
+        } else {
+          statusText.setText("New game started! Roll the dice to start.");
+        }
+      }
 
       // Enable/disable roll button
       rollButton.setDisable(game.getPlayers().isEmpty());
 
     } catch (Exception e) {
       statusText.setText("Error starting new game: " + e.getMessage());
+      e.printStackTrace(); // Add this to see the full stack trace
     }
   }
 
@@ -322,7 +387,7 @@ public class GameController implements BoardGameObserver {
   }
 
   private void handleRollDice() {
-    // Debug output to console
+    // Debug output
     System.out.println("Roll button clicked!");
 
     // Check game state conditions
@@ -336,6 +401,9 @@ public class GameController implements BoardGameObserver {
     // Disable roll button during turn
     rollButton.setDisable(true);
     animationInProgress = true;
+
+    // Debug player sequence
+    game.debugPlayerSequence();
 
     // Make sure there's a current player
     Player currentPlayer = game.getCurrentPlayer();
@@ -382,10 +450,16 @@ public class GameController implements BoardGameObserver {
         // NOTE: Don't reset animationInProgress here
         // Observer will handle this after all animations (including ladders/chutes)
 
+        // IMPORTANT: Do NOT call moveToNextPlayer() here!
+        // It's already called in game.playOneRound()
+
         // If the game is over, don't play next round
         if (!game.isFinished()) {
-          // Advance to next player
-          game.moveToNextPlayer();
+          // Show who's next
+          Player nextPlayer = game.getCurrentPlayer();
+          if (nextPlayer != null) {
+            System.out.println("Next player will be: " + nextPlayer.getName());
+          }
         }
       } catch (Exception ex) {
         System.err.println("Error in player move: " + ex.getMessage());
@@ -442,111 +516,300 @@ public class GameController implements BoardGameObserver {
     alert.showAndWait();
   }
 
+  private void updateButtonState() {
+    rollButton.setDisable(animationInProgress ||
+      game.isFinished() ||
+      game.getPlayers().isEmpty());
+  }
+
   // BoardGameObserver implementation
   @Override
   public void update(GameEvent event) {
+    if (event == null) {
+      System.err.println("Received null event!");
+      return;
+    }
+
+    System.out.println("Received game event: " + event.getType());
+
     // Handle different game events
     switch (event.getType()) {
       case PLAYER_MOVED:
         // Player has moved normally - update view
-        Player player = event.getPlayer();
-        Tile destination = event.getToTile();
-
-        // Update player position on board with animation
-        Platform.runLater(() -> {
-          boardView.updatePlayerPosition(player, destination.getTileId());
-          playerInfoView.updatePlayerInfo(boardView);
-
-          // Don't enable buttons yet - might be followed by ladder/chute event
-        });
+        handlePlayerMoved(event);
         break;
 
       case LADDER_CLIMBED:
-        // Player climbed a ladder - update with animation after pause
-        Platform.runLater(() -> {
-          Player lPlayer = event.getPlayer();
-          Tile lDestination = event.getToTile();
-
-          // Update status text
-          statusText.setText(lPlayer.getName() +
-            " climbed a ladder to " + lDestination.getTileId() + "!");
-
-          // Add slight delay before showing ladder movement
-          PauseTransition pause = new PauseTransition(Duration.seconds(0.5));
-          pause.setOnFinished(e -> {
-            // Show the climb animation
-            boardView.updatePlayerPosition(lPlayer, lDestination.getTileId());
-            playerInfoView.updatePlayerInfo(boardView);
-
-            // Now we can enable the controls
-            animationInProgress = false;
-            updateButtonState();
-          });
-          pause.play();
-        });
+        // Player climbed a ladder
+        handleLadderClimbed(event);
         break;
 
       case CHUTE_SLID:
         // Player slid down a chute
-        Platform.runLater(() -> {
-          Player cPlayer = event.getPlayer();
-          Tile cDestination = event.getToTile();
-
-          // Update status text
-          statusText.setText(cPlayer.getName() +
-            " slid down a chute to " + cDestination.getTileId() + "!");
-
-          // Add slight delay before showing chute movement
-          PauseTransition pause = new PauseTransition(Duration.seconds(0.5));
-          pause.setOnFinished(e -> {
-            // Show the slide animation
-            boardView.updatePlayerPosition(cPlayer, cDestination.getTileId());
-            playerInfoView.updatePlayerInfo(boardView);
-
-            // Now we can enable the controls
-            animationInProgress = false;
-            updateButtonState();
-          });
-          pause.play();
-        });
+        handleChuteSlid(event);
         break;
 
       case GAME_OVER:
         // Game is over - show dialog
-        Platform.runLater(() -> {
-          // Update button state first
-          animationInProgress = false;
-          updateButtonState();
-
-          // Show game over dialog
-          showGameOverDialog(event.getPlayer());
-        });
+        handleGameOver(event);
         break;
 
       case DICE_ROLLED:
         // Dice were rolled
-        Platform.runLater(() -> {
-          int[] diceValues = new int[game.getDice().getNumberOfDice()];
-          for (int i = 0; i < diceValues.length; i++) {
-            diceValues[i] = game.getDice().getDieValue(i);
-          }
-          diceView.setValues(diceValues);
-
-          statusText.setText(event.getPlayer().getName() +
-            " rolled a " + event.getDiceValue());
-        });
+        handleDiceRolled(event);
         break;
 
       case GAME_RESET:
         // Game was reset
-        Platform.runLater(() -> {
-          updateAllPlayerPositions();
-          playerInfoView.updatePlayerInfo(boardView);
-          statusText.setText("Game reset! Ready to play.");
-          animationInProgress = false;
-          updateButtonState();
-        });
+        handleGameReset();
         break;
+
+      default:
+        System.err.println("Unknown event type: " + event.getType());
+    }
+  }
+
+  private void handlePlayerMoved(GameEvent event) {
+    Player player = event.getPlayer();
+    Tile destination = event.getToTile();
+
+    if (player == null || destination == null) {
+      System.err.println("Invalid player movement event: player or destination is null");
+      return;
+    }
+
+    // Update player position on board with animation
+    Platform.runLater(() -> {
+      boardView.updatePlayerPosition(player, destination.getTileId());
+      playerInfoView.updatePlayerInfo(boardView);
+
+      // Check if the destination tile has an action
+      if (destination.getTileAction() == null) {
+        // No further animations expected, reset state
+        animationInProgress = false;
+        updateButtonState();
+
+        // Update status for next player
+        if (!game.isFinished()) {
+          Player nextPlayer = game.getCurrentPlayer();
+          if (nextPlayer != null) {
+            statusText.setText(nextPlayer.getName() + "'s turn to roll");
+          }
+        }
+      }
+    });
+  }
+
+  private void handleLadderClimbed(GameEvent event) {
+    Platform.runLater(() -> {
+      Player player = event.getPlayer();
+      Tile destination = event.getToTile();
+
+      if (player == null || destination == null) {
+        System.err.println("Invalid ladder event: player or destination is null");
+        return;
+      }
+
+      // Update status text
+      statusText.setText(player.getName() +
+        " climbed a ladder to " + destination.getTileId() + "!");
+
+      // Add slight delay before showing ladder movement
+      PauseTransition pause = new PauseTransition(Duration.seconds(0.5));
+      pause.setOnFinished(e -> {
+        // Show the climb animation
+        boardView.updatePlayerPosition(player, destination.getTileId());
+        playerInfoView.updatePlayerInfo(boardView);
+
+        // Now we can enable the controls
+        animationInProgress = false;
+        updateButtonState();
+
+        // Update status for next player
+        if (!game.isFinished()) {
+          Player nextPlayer = game.getCurrentPlayer();
+          if (nextPlayer != null) {
+            statusText.setText(nextPlayer.getName() + "'s turn to roll");
+          }
+        }
+      });
+      pause.play();
+    });
+  }
+
+  private void handleChuteSlid(GameEvent event) {
+    Platform.runLater(() -> {
+      Player player = event.getPlayer();
+      Tile destination = event.getToTile();
+
+      if (player == null || destination == null) {
+        System.err.println("Invalid chute event: player or destination is null");
+        return;
+      }
+
+      // Update status text
+      statusText.setText(player.getName() +
+        " slid down a chute to " + destination.getTileId() + "!");
+
+      // Add slight delay before showing chute movement
+      PauseTransition pause = new PauseTransition(Duration.seconds(0.5));
+      pause.setOnFinished(e -> {
+        // Show the slide animation
+        boardView.updatePlayerPosition(player, destination.getTileId());
+        playerInfoView.updatePlayerInfo(boardView);
+
+        // Now we can enable the controls
+        animationInProgress = false;
+        updateButtonState();
+
+        // Update status for next player
+        if (!game.isFinished()) {
+          Player nextPlayer = game.getCurrentPlayer();
+          if (nextPlayer != null) {
+            statusText.setText(nextPlayer.getName() + "'s turn to roll");
+          }
+        }
+      });
+      pause.play();
+    });
+  }
+
+  private void handleGameOver(GameEvent event) {
+    Platform.runLater(() -> {
+      // Update button state first
+      animationInProgress = false;
+      updateButtonState();
+
+      // Show game over dialog with winner
+      Player winner = event.getPlayer();
+      if (winner != null) {
+        showGameOverDialog(winner);
+      } else {
+        System.err.println("Game over event with null player!");
+        statusText.setText("Game over!");
+      }
+    });
+  }
+
+  private void handleDiceRolled(GameEvent event) {
+    Platform.runLater(() -> {
+      if (event.getPlayer() == null) {
+        System.err.println("Dice rolled event with null player!");
+        return;
+      }
+
+      int[] diceValues = new int[game.getDice().getNumberOfDice()];
+      for (int i = 0; i < diceValues.length; i++) {
+        diceValues[i] = game.getDice().getDieValue(i);
+      }
+      diceView.setValues(diceValues);
+
+      statusText.setText(event.getPlayer().getName() +
+        " rolled a " + event.getDiceValue());
+    });
+  }
+
+  private void handleGameReset() {
+    Platform.runLater(() -> {
+      updateAllPlayerPositions();
+      playerInfoView.updatePlayerInfo(boardView);
+
+      if (game.getPlayers().isEmpty()) {
+        statusText.setText("Game reset! Add players to begin.");
+      } else {
+        statusText.setText("Game reset! " + game.getCurrentPlayer().getName() + " starts.");
+      }
+
+      animationInProgress = false;
+      updateButtonState();
+    });
+  }
+
+  private void handleSaveGame() {
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.setTitle("Save Game Board");
+    fileChooser.getExtensionFilters().add(
+      new FileChooser.ExtensionFilter("JSON Files", "*.json")
+    );
+
+    File file = fileChooser.showSaveDialog(primaryStage);
+    if (file != null) {
+      try {
+        game.saveBoardToFile(file.getAbsolutePath());
+
+        // Prompt to save players if desired
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Save Players");
+        alert.setHeaderText("Would you like to save the player list as well?");
+        alert.setContentText("Players will be saved to a separate CSV file.");
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+          // Create default player file name based on board file
+          String playerFilePath = file.getAbsolutePath().replace(".json", "_players.csv");
+          game.savePlayersToFile(playerFilePath);
+          statusText.setText("Game board and players saved successfully!");
+        } else {
+          statusText.setText("Game board saved successfully!");
+        }
+      } catch (BoardGameException e) {
+        showErrorAlert("Save Error", "Could not save game", e.getMessage());
+      }
+    }
+  }
+
+  private void handleLoadGame() {
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.setTitle("Load Game Board");
+    fileChooser.getExtensionFilters().add(
+      new FileChooser.ExtensionFilter("JSON Files", "*.json")
+    );
+
+    File file = fileChooser.showOpenDialog(primaryStage);
+    if (file != null) {
+      try {
+        // Load the board
+        game.loadBoardFromFile(file.getAbsolutePath());
+
+        // Update board view
+        boardView.setBoard(game.getBoard());
+
+        // Prompt to load players if desired
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Load Players");
+        alert.setHeaderText("Would you like to load players as well?");
+        alert.setContentText("Players should be in a CSV file.");
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+          FileChooser playerChooser = new FileChooser();
+          playerChooser.setTitle("Load Players File");
+          playerChooser.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("CSV Files", "*.csv")
+          );
+
+          // Try to set initial directory to the same as the board file
+          playerChooser.setInitialDirectory(file.getParentFile());
+
+          File playerFile = playerChooser.showOpenDialog(primaryStage);
+          if (playerFile != null) {
+            game.loadPlayersFromFile(playerFile.getAbsolutePath());
+
+            // Update player view
+            playerInfoView = new PlayerInfoView(game.getPlayers(), boardView);
+            rootPane.setRight(playerInfoView);
+          }
+        }
+
+        // Reset game and update UI
+        game.reset();
+        updateAllPlayerPositions();
+        statusText.setText("Game loaded successfully!");
+        rollButton.setDisable(game.getPlayers().isEmpty());
+
+      } catch (BoardGameException e) {
+        showErrorAlert("Load Error", "Could not load game", e.getMessage());
+      }
     }
   }
 }
