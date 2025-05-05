@@ -1,0 +1,45 @@
+/* src/main/resources/styles/game.css */
+
+.root {
+    -fx-font-family: 'Arial';
+    -fx-background-color: #f5f5f5;
+}
+
+.button {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 8 16;
+    -fx-background-radius: 4;
+}
+
+.button:hover {
+    -fx-background-color: #45a049;
+}
+
+.label {
+    -fx-font-size: 14px;
+}
+
+.text {
+    -fx-font-size: 14px;
+}
+
+#statusText {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.dialog-pane {
+    -fx-background-color: #f5f5f5;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #4CAF50;
+}
+
+.dialog-pane .header-panel .label {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
