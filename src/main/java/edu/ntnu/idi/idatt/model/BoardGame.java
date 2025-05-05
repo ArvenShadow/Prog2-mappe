@@ -102,6 +102,19 @@ public class BoardGame implements ObservableGame {
     }
   }
 
+  public void moveToNextPlayer() {
+    if (players.isEmpty()) return;
+
+    int nextIndex = 0;
+    if (currentPlayer != null) {
+      int currentIndex = players.indexOf(currentPlayer);
+      nextIndex = (currentIndex + 1) % players.size();
+    }
+
+    currentPlayer = players.get(nextIndex);
+    System.out.println("Next player: " + currentPlayer.getName());
+  }
+
   public boolean isFinished() {
     return gameFinished;
   }
