@@ -4,6 +4,7 @@ import edu.ntnu.idi.idatt.controller.BoardGameController;
 import edu.ntnu.idi.idatt.model.BoardGame;
 import edu.ntnu.idi.idatt.model.Player;
 import edu.ntnu.idi.idatt.model.PlayerData;
+import edu.ntnu.idi.idatt.view.BoardGameViewImpl;
 import edu.ntnu.idi.idatt.view.CharacterSelectionView;
 import edu.ntnu.idi.idatt.view.MainMenuView;
 import javafx.scene.Parent;

@@ -47,7 +47,7 @@ public class BoardView extends Pane {
         int tileId = calculateTileId(r, c, numRows, numCols);
         Tile tile = board.getTile(tileId);
 
-        if (tile != null) {
+        if (tile == null) {
           continue;
         }
 
@@ -83,7 +83,7 @@ public class BoardView extends Pane {
         tileText.setY(y + TILE_SIZE / 2 + 10);
 
         tileViews.put(tileId, tileRect);
-        this.getChildren().add(tileRect);
+        this.getChildren().addAll(tileRect, tileText);
       }
     }
 
@@ -123,7 +123,7 @@ public class BoardView extends Pane {
   }
 
   private int calculateTileId(int row, int col, int numRows, int numCols) {
-    int rowFromBottom = numRows - 1- row;
+    int rowFromBottom = numRows - 1 - row;
     if (rowFromBottom % 2 == 0) {
       return rowFromBottom * numCols + col + 1;
     } else {
@@ -133,7 +133,7 @@ public class BoardView extends Pane {
 
   public void updatePlayerPos(Player player, int tileId) {
     Rectangle tileRect = tileViews.get(tileId);
-    if (tileRect != null) {
+    if (tileRect == null) {
       return;
     }
 
@@ -160,22 +160,21 @@ public class BoardView extends Pane {
   }
 
   private Circle createPlayerToken(Player player) {
-
     int playerIndex = new ArrayList<>(playerTokens.keySet()).size();
     Color playerColor = PLAYER_COLORS[playerIndex % PLAYER_COLORS.length];
     playerColors.put(playerIndex, playerColor);
 
-    Circle playerToken = new Circle(0, 0, TOKEN_RADIUS, playerColor);
+    Circle playerToken = new Circle(TOKEN_RADIUS, playerColor);
     playerToken.setStroke(Color.BLACK);
     playerToken.setStrokeWidth(2);
 
     Text name = new Text(player.getName().substring(0, 1));
     name.setFont(Font.font("Arial", TOKEN_RADIUS));
     name.setFill(Color.WHITE);
-    name.setX(-TOKEN_RADIUS / 4);
-    name.setY(TOKEN_RADIUS / 4);
+    name.setX(playerToken.getCenterX() - TOKEN_RADIUS / 4);
+    name.setY(playerToken.getCenterY() + TOKEN_RADIUS / 4);
 
-    this.getChildren().addAll(name, playerToken);
+    this.getChildren().add(name);
 
     return playerToken;
   }

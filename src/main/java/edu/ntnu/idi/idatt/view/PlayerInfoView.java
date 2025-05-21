@@ -56,5 +56,4 @@ public class PlayerInfoView extends VBox {
       getChildren().add(playerBox);
     }
   }
-
 }
