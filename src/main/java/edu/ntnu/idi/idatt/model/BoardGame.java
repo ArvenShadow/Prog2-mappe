@@ -69,13 +69,14 @@ public class BoardGame implements ObservableGame {
       return;
     }
 
-    int roll = dice.Roll();
-    notifyObservers(new GameEvent(GameEventType.DICE_ROLLED, player, roll));
+    int[] diceValues = dice.rollAllDice();
+    int totalRoll = dice.getTotal();
+    notifyObservers(new GameEvent(GameEventType.DICE_ROLLED, player, totalRoll, diceValues));
 
     int oldPosition = player.getCurrentTile().getTileId();
 
     // Calculate new position
-    int newPosition = oldPosition + roll;
+    int newPosition = oldPosition + totalRoll;
     Tile targetTile = board.getTile(newPosition);
 
     if (targetTile == null) {
@@ -103,6 +104,41 @@ public class BoardGame implements ObservableGame {
     // Move to next player
     currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
     notifyObservers(new GameEvent(GameEventType.TURN_CHANGED, players.get(currentPlayerIndex)));
+  }
+
+  /**
+   * Moves a player to a specific tile by ID
+   */
+  public void movePlayerToTile(Player player, int tileId) {
+    Tile tile = board.getTile(tileId);
+    if (tile != null) {
+      player.placeOnTile(tile);
+    }
+  }
+
+  /**
+   * Advances to the next player
+   */
+  public void advanceToNextPlayer() {
+    currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+    notifyObservers(new GameEvent(GameEventType.TURN_CHANGED, getCurrentPlayer()));
+  }
+
+  /**
+   * Sets the game's winner
+   */
+  public void setWinner(Player player) {
+    this.winner = player;
+  }
+
+  /**
+   * Sets the game's finished state
+   */
+  public void setGameFinished(boolean finished) {
+    this.gameFinished = finished;
+    if (finished && winner != null) {
+      notifyObservers(new GameEvent(GameEventType.GAME_OVER, winner));
+    }
   }
 
   public boolean isFinished() {

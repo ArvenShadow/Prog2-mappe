@@ -190,4 +190,38 @@ public class BoardView extends Pane {
   public Color getPlayerColor(int playerIndex) {
     return playerColors.getOrDefault(playerIndex, Color.GRAY);
   }
+
+  public void animatePlayerMove(Player player, int tileId, Runnable onComplete) {
+    Rectangle tileRect = tileViews.get(tileId);
+    if (tileRect == null) {
+      if (onComplete != null) onComplete.run();
+      return;
+    }
+
+    Circle playerToken = playerTokens.get(player);
+    if (playerToken == null) {
+      playerToken = createPlayerToken(player);
+      playerTokens.put(player, playerToken);
+      this.getChildren().add(playerToken);
+    }
+
+    double targetX = tileRect.getX() + TILE_SIZE / 2;
+    double targetY = tileRect.getY() + TILE_SIZE / 2;
+
+    int playerIndex = new ArrayList<>(playerTokens.keySet()).indexOf(player);
+    targetX += (playerIndex % 2) * (TOKEN_RADIUS * 1.5) - TOKEN_RADIUS * 0.75;
+    targetY += (playerIndex / 2) * (TOKEN_RADIUS * 1.5) - TOKEN_RADIUS * 0.75;
+
+    TranslateTransition transition = new TranslateTransition(ANIMATION_DURATION, playerToken);
+    transition.setToX(targetX - playerToken.getCenterX());
+    transition.setToY(targetY - playerToken.getCenterY());
+
+    if (onComplete != null) {
+      transition.setOnFinished(event -> onComplete.run());
+    }
+
+    transition.play();
+
+    playerToken.toFront();
+  }
 }

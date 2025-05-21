@@ -9,6 +9,7 @@ public class GameEvent {
   private int oldPosition;
   private int newPosition;
   private int diceRoll;
+  private int[] diceValues;
   private TileAction action;
 
   // Constructor for general events
@@ -21,6 +22,13 @@ public class GameEvent {
   public GameEvent(GameEventType type, Player player, int diceRoll) {
     this(type, player);
     this.diceRoll = diceRoll;
+  }
+
+  // New constructor for dice roll events with individual values
+  public GameEvent(GameEventType type, Player player, int diceRoll, int[] diceValues) {
+    this(type, player);
+    this.diceRoll = diceRoll;
+    this.diceValues = diceValues;
   }
 
   // Constructor for player movement events
@@ -54,6 +62,10 @@ public class GameEvent {
 
   public int getDiceRoll() {
     return diceRoll;
+  }
+
+  public int[] getDiceValues() {
+    return diceValues;
   }
 
   public TileAction getAction() {

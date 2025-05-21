@@ -1,18 +1,23 @@
 package edu.ntnu.idi.idatt.controller;
 
+import edu.ntnu.idi.idatt.action.LadderAction;
 import edu.ntnu.idi.idatt.event.GameEvent;
 import edu.ntnu.idi.idatt.event.GameEventType;
 import edu.ntnu.idi.idatt.event.GameObserver;
 import edu.ntnu.idi.idatt.exception.BoardGameException;
 import edu.ntnu.idi.idatt.model.BoardGame;
 import edu.ntnu.idi.idatt.model.Player;
+import edu.ntnu.idi.idatt.model.Tile;
 import edu.ntnu.idi.idatt.view.BoardGameView;
+import edu.ntnu.idi.idatt.view.SettingsDialog;
+import javafx.stage.Stage;
 
 import java.util.List;
 
 public class BoardGameController implements GameObserver {
   private BoardGame model;
   private BoardGameView view;
+  private boolean animationInProgress = false;
 
   public BoardGameController(BoardGame model, BoardGameView view) {
     this.model = model;
@@ -25,6 +30,7 @@ public class BoardGameController implements GameObserver {
     view.setRollDiceHandler(this::handleRollDice);
     view.setNewGameHandler(this::handleNewGame);
     view.setLoadGameHandler(this::handleLoadGame);
+    view.setSettingsHandler(this::handleSettings);
 
     // Initialize view with current game state
     view.renderBoard(model.getBoard());
@@ -36,7 +42,12 @@ public class BoardGameController implements GameObserver {
     }
   }
 
+  // In BoardGameController.java
   private void handleRollDice() {
+    if (animationInProgress) {
+      return; // Prevent actions during animations
+    }
+
     try {
       if (model.isFinished()) {
         view.showMessage("Game Over", "The game is already finished. Start a new game to play again.");
@@ -52,18 +63,90 @@ public class BoardGameController implements GameObserver {
           currentPlayer.getName() + " skips this turn.");
 
         // Move to next player
-        int nextPlayerIndex = (model.getPlayers().indexOf(currentPlayer) + 1) % model.getPlayers().size();
-        Player nextPlayer = model.getPlayers().get(nextPlayerIndex);
-        view.highlightCurrentPlayer(nextPlayer);
+        model.advanceToNextPlayer();
+        view.highlightCurrentPlayer(model.getCurrentPlayer());
         return;
       }
 
-      // Play turn - model will notify us via observer pattern
-      model.playTurn(currentPlayer);
+      // First, roll the dice
+      int[] diceValues = model.getDice().rollAllDice();
+      int total = model.getDice().getTotal();
+
+      // Show dice roll
+      view.showDiceRoll(currentPlayer, total, diceValues);
+
+      // Get current position
+      int oldPosition = currentPlayer.getCurrentTile().getTileId();
+
+      // Calculate new position
+      int newPosition = oldPosition + total;
+      int maxTileId = model.getBoard().getFinalTileId();
+
+      // Handle case where player would move beyond the board
+      if (newPosition > maxTileId) {
+        newPosition = maxTileId;
+      }
+
+      // Get the destination tile
+      final int destinationTileId = newPosition;
+
+      // Start animation sequence
+      animationInProgress = true;
+
+      // 1. Animate player moving to the new position
+      view.movePlayerWithAnimation(currentPlayer, oldPosition, destinationTileId, () -> {
+        // After move animation completes, update model and check for tile action
+        model.movePlayerToTile(currentPlayer, destinationTileId);
+
+        // Get the tile the player landed on
+        Tile landedTile = model.getBoard().getTile(destinationTileId);
+
+        // Check if player landed on a tile with an action
+        if (landedTile != null && landedTile.getTileAction() != null) {
+          // Save the current position before action
+          int preActionPosition = destinationTileId;
+
+          // Execute the action in the model (this should update the player's position)
+          landedTile.landAction(currentPlayer);
+
+          // Get the new position after action
+          int postActionPosition = currentPlayer.getCurrentTile().getTileId();
+
+          // Only animate if positions different (action moved the player)
+          if (preActionPosition != postActionPosition) {
+            // 2. Animate the action (ladder/slide)
+            view.showActionWithAnimation(currentPlayer, landedTile.getTileAction(), postActionPosition, () -> {
+              finishTurn(currentPlayer);
+            });
+          } else {
+            finishTurn(currentPlayer);
+          }
+        } else {
+          finishTurn(currentPlayer);
+        }
+      });
 
     } catch (Exception e) {
+      animationInProgress = false;
       view.showError("Error during turn", e.getMessage());
     }
+  }
+
+  // Helper method to finish the turn
+  private void finishTurn(Player currentPlayer) {
+    // Check if game is over
+    if (currentPlayer.hasWon(model.getBoard().getFinalTileId())) {
+      model.setWinner(currentPlayer);
+      model.setGameFinished(true);
+      view.showGameOver(currentPlayer);
+    } else {
+      // Move to next player
+      model.advanceToNextPlayer();
+      view.highlightCurrentPlayer(model.getCurrentPlayer());
+    }
+
+    // Animation sequence complete
+    animationInProgress = false;
   }
 
   private void handleNewGame() {
@@ -114,6 +197,30 @@ public class BoardGameController implements GameObserver {
     }
   }
 
+  private void handleSettings() {
+    Stage primaryStage = (Stage) view.getRoot().getScene().getWindow();
+    SettingsDialog dialog = new SettingsDialog(primaryStage, model.getDice().getNumberOfDice());
+
+    dialog.showAndWait().ifPresent(result -> {
+      int newDiceCount = result.getDiceCount();
+      if (newDiceCount != model.getDice().getNumberOfDice()) {
+        try {
+          // Update the model
+          model.getDice().setNumberOfDice(newDiceCount);
+
+          // Update the view
+          view.updateDiceView(model.getDice().getNumberOfDice());
+
+          view.showMessage("Settings Updated",
+            "Number of dice changed to " + newDiceCount);
+        } catch (Exception e) {
+          view.showError("Error Updating Settings", e.getMessage());
+        }
+      }
+    });
+  }
+
+
   @Override
   public void onGameEvent(GameEvent event) {
     GameEventType type = event.getType();
@@ -128,7 +235,11 @@ public class BoardGameController implements GameObserver {
         break;
 
       case DICE_ROLLED:
-        view.showDiceRoll(event.getPlayer(), event.getDiceRoll());
+        if (event.getDiceValues() != null) {
+          view.showDiceRoll(event.getPlayer(), event.getDiceRoll(), event.getDiceValues());
+        } else {
+          view.showDiceRoll(event.getPlayer(), event.getDiceRoll());
+        }
         break;
 
       case PLAYER_MOVED:

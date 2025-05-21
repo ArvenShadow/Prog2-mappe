@@ -1,12 +1,10 @@
 package edu.ntnu.idi.idatt.view;
 
+import edu.ntnu.idi.idatt.action.LadderAction;
 import edu.ntnu.idi.idatt.action.TileAction;
 import edu.ntnu.idi.idatt.model.Board;
 import edu.ntnu.idi.idatt.model.BoardGame;
 import edu.ntnu.idi.idatt.model.Player;
-import edu.ntnu.idi.idatt.view.BoardView;
-import edu.ntnu.idi.idatt.view.DiceView;
-import edu.ntnu.idi.idatt.view.PlayerInfoView;
 
 import javafx.animation.PauseTransition;
 import javafx.geometry.Insets;
@@ -31,10 +29,14 @@ public class BoardGameViewImpl implements BoardGameView {
   private Button rollButton;
   private Button newGameButton;
   private Button loadButton;
+  private Button settingsButton;
+  private HBox controls; // Define the controls HBox as a field
 
   private Runnable rollDiceHandler;
   private Runnable newGameHandler;
   private Runnable loadGameHandler;
+  private Runnable settingsHandler;
+  private Runnable turnCompletionCallback;
 
   private BoardGame model;
 
@@ -51,7 +53,14 @@ public class BoardGameViewImpl implements BoardGameView {
     statusLabel = new Label("Game ready to start");
     statusLabel.setId("statusText");
 
-    HBox topBar = new HBox(10, statusLabel);
+    settingsButton = new Button("Settings");
+    settingsButton.setOnAction(e -> {
+      if (settingsHandler != null) {
+        settingsHandler.run();
+      }
+    });
+
+    HBox topBar = new HBox(10, statusLabel, settingsButton);
     topBar.setAlignment(Pos.CENTER);
     root.setTop(topBar);
 
@@ -88,11 +97,23 @@ public class BoardGameViewImpl implements BoardGameView {
       }
     });
 
-    HBox controls = new HBox(15, rollButton, diceView, newGameButton, loadButton);
+    controls = new HBox(15, rollButton, diceView, newGameButton, loadButton);
     controls.setAlignment(Pos.CENTER);
     controls.setPadding(new Insets(15, 0, 0, 0));
 
     root.setBottom(controls);
+  }
+
+  @Override
+  public void updateDiceView(int diceCount) {
+    // Remove old dice view
+    controls.getChildren().remove(diceView);
+
+    // Create new dice view
+    diceView = new DiceView(diceCount);
+
+    // Add back at the same position (index 1)
+    controls.getChildren().add(1, diceView);
   }
 
   @Override
@@ -116,9 +137,33 @@ public class BoardGameViewImpl implements BoardGameView {
   }
 
   @Override
+  public void setSettingsHandler(Runnable handler) {
+    this.settingsHandler = handler;
+  }
+
+  @Override
   public void movePlayer(Player player, int oldPosition, int newPosition) {
     boardView.updatePlayerPos(player, newPosition);
     playerInfoView.updatePlayerInfo(boardView);
+  }
+
+  @Override
+  public void movePlayerWithAnimation(Player player, int oldPosition, int newPosition, Runnable onComplete) {
+    // First disable the roll button to prevent further actions during animation
+    rollButton.setDisable(true);
+
+    // Update the player's visual position with animation
+    boardView.animatePlayerMove(player, newPosition, () -> {
+      // Update player info after animation
+      playerInfoView.updatePlayerInfo(boardView);
+
+      // Re-enable roll button and call completion callback
+      rollButton.setDisable(false);
+
+      if (onComplete != null) {
+        onComplete.run();
+      }
+    });
   }
 
   public void updatePlayerPos(Player player, int position) {
@@ -126,9 +171,14 @@ public class BoardGameViewImpl implements BoardGameView {
   }
 
   @Override
-  public void showDiceRoll(Player player, int roll) {
-    // Update dice visualization
-    diceView.setValues(new int[]{roll});
+  public void showDiceRoll(Player player, int roll, int[] diceValues) {
+    // Update dice visualization with all values
+    if (diceValues != null) {
+      diceView.setValues(diceValues);
+    } else {
+      // Fallback to just showing the total (for backward compatibility)
+      diceView.setValues(new int[]{roll});
+    }
     diceView.roll();
 
     // Update status text
@@ -136,13 +186,18 @@ public class BoardGameViewImpl implements BoardGameView {
   }
 
   @Override
+  public void showDiceRoll(Player player, int roll) {
+    // Backward compatibility method
+    showDiceRoll(player, roll, null);
+  }
+
+  @Override
   public void showAction(Player player, TileAction action) {
     String actionDesc = "special action";
     if (action != null) {
-      // Try to get more descriptive action text based on action type
-      if (action.getClass().getSimpleName().contains("Ladder")) {
-        boolean isUp = action.toString().contains("up") ||
-          !action.toString().contains("down");
+      if (action instanceof LadderAction) {
+        LadderAction ladderAction = (LadderAction) action;
+        boolean isUp = ladderAction.getDestinationTileId() > player.getCurrentTile().getTileId();
         actionDesc = isUp ? "climbs up a ladder" : "slides down a chute";
       } else if (action.getClass().getSimpleName().contains("Skip")) {
         actionDesc = "will skip next turn";
@@ -150,6 +205,51 @@ public class BoardGameViewImpl implements BoardGameView {
     }
 
     statusLabel.setText(player.getName() + " " + actionDesc);
+  }
+
+  @Override
+  public void showActionWithAnimation(Player player, TileAction action, int destinationTileId, Runnable onComplete) {
+    // Disable the roll button during animation
+    rollButton.setDisable(true);
+
+    // Create action description
+    String actionDesc = "special action";
+    if (action != null) {
+      if (action instanceof LadderAction) {
+        boolean isUp = destinationTileId > player.getCurrentTile().getTileId();
+        actionDesc = isUp ? "climbs up a ladder" : "slides down a chute";
+      } else if (action.getClass().getSimpleName().contains("Skip")) {
+        actionDesc = "will skip next turn";
+      }
+    }
+
+    // Update status immediately
+    statusLabel.setText(player.getName() + " " + actionDesc);
+
+    // First, pause to let the player see where they landed
+    PauseTransition pause = new PauseTransition(Duration.millis(500));
+
+    // After pause, animate the movement
+    pause.setOnFinished(event -> {
+      boardView.animatePlayerMove(player, destinationTileId, () -> {
+        // Update player info panel
+        playerInfoView.updatePlayerInfo(boardView);
+
+        // Re-enable roll button and execute completion callback
+        rollButton.setDisable(false);
+
+        if (onComplete != null) {
+          onComplete.run();
+        }
+      });
+    });
+
+    pause.play();
+  }
+
+  @Override
+  public void setTurnCompletionCallback(Runnable callback) {
+    this.turnCompletionCallback = callback;
   }
 
   @Override
