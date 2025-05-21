@@ -46,12 +46,16 @@ public class DiceView extends Group {
   }
 
   public void setValues(int[] values) {
-    if (values.length != diceViews.size()) {
-      throw new IllegalArgumentException("Values array length must match dice count");
+    // Use the minimum length to avoid index errors
+    int length = Math.min(values.length, diceViews.size());
+
+    for (int i = 0; i < length; i++) {
+      diceViews.get(i).setValue(values[i]);
     }
 
-    for (int i = 0; i < values.length; i++) {
-      diceViews.get(i).setValue(values[i]);
+    // If values array is shorter, set remaining dice to a default value (e.g., 1)
+    for (int i = length; i < diceViews.size(); i++) {
+      diceViews.get(i).setValue(1);
     }
 
     totalText.setText("Total: " + getTotal());
