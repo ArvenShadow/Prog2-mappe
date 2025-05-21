@@ -69,14 +69,12 @@ public class BoardView extends Pane {
           if (tile.getTileAction() instanceof LadderAction) {
             LadderAction ladderAction = (LadderAction) tile.getTileAction();
             int destinationId = ladderAction.getDestinationTileId();
-
+            System.out.println("ladderaction from " + tileId + " to " + destinationId);
             if (destinationId > tileId) {
               tileRect.setFill(Color.LIGHTGREEN);
             } else {
               tileRect.setFill(Color.LIGHTPINK);
             }
-          } else if (tile.getTileAction() instanceof SkipTurnAction) {
-            createSkipTurnIndicator(x, y);
           }
         }
         tileRect.setStroke(Color.BLACK);
@@ -89,6 +87,10 @@ public class BoardView extends Pane {
 
         tileViews.put(tileId, tileRect);
         this.getChildren().addAll(tileRect, tileText);
+
+        if (tile.getTileAction() != null && tile.getTileAction() instanceof SkipTurnAction) {
+          createSkipTurnIndicator(x, y);
+        }
       }
     }
 
@@ -226,7 +228,7 @@ public class BoardView extends Pane {
 
     Circle blockCircle = new Circle(x + TILE_SIZE / 2, y + TILE_SIZE / 2, TILE_SIZE / 3);
     blockCircle.setFill(Color.RED);
-    blockCircle.setOpacity(0.6);
+    blockCircle.setOpacity(0.3);
     blockCircle.setStroke(Color.DARKRED);
     blockCircle.setStrokeWidth(2);
 
@@ -247,6 +249,9 @@ public class BoardView extends Pane {
     line2.setStrokeWidth(3);
 
     this.getChildren().addAll(blockCircle, line1, line2);
+    blockCircle.toFront();
+    line1.toFront();
+    line2.toFront();
 
   }
 
