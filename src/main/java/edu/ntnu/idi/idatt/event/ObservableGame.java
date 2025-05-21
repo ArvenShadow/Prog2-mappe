@@ -1,7 +1,7 @@
 package edu.ntnu.idi.idatt.event;
 
 public interface ObservableGame {
-  void addObserver(BoardGameObserver observer);
-  void removeObserver(BoardGameObserver observer);
+  void addObserver(GameObserver observer);
+  void removeObserver(GameObserver observer);
   void notifyObservers(GameEvent event);
 }

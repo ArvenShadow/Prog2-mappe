@@ -1,20 +1,20 @@
 package edu.ntnu.idi.idatt.controller;
 
 import edu.ntnu.idi.idatt.navigation.NavTo;
-import edu.ntnu.idi.idatt.navigation.Navigation;
+import edu.ntnu.idi.idatt.navigation.NavigationManager;
 
 public class BaseController {
-  protected final Navigation navigation;
+  protected final NavigationManager navigationManager;
 
-  public BaseController(Navigation navigation) {
-    this.navigation = Navigation.getInstance();
+  public BaseController(NavigationManager navigationManager) {
+    this.navigationManager = NavigationManager.getInstance();
   }
 
   protected void navigateTo(NavTo target) {
-    navigation.navigateTo(target);
+    navigationManager.navigateTo(target);
   }
 
   protected void navigateBack() {
-    navigation.navigateBack();
+    navigationManager.navigateBack();
   }
 }
