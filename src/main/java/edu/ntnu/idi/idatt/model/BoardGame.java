@@ -146,18 +146,6 @@ public class BoardGame implements ObservableGame {
     }
   }
 
-  // Add placeholder implementations for save/load game
-  public void saveGame(String filename) throws BoardGameException {
-    // Basic implementation that could be expanded later
-    // For now, just simulate saving board and player states
-    try {
-      BoardJsonHandler boardHandler = new BoardJsonHandler();
-      boardHandler.writeToFile(board, filename);
-      // In a full implementation, we'd also save player state
-    } catch (Exception e) {
-      throw new BoardGameException("Failed to save game: " + e.getMessage(), e);
-    }
-  }
 
   public void loadGame(String filename) throws BoardGameException {
     try {

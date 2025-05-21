@@ -24,7 +24,6 @@ public class BoardGameController implements GameObserver {
     // Set up view event handlers
     view.setRollDiceHandler(this::handleRollDice);
     view.setNewGameHandler(this::handleNewGame);
-    view.setSaveGameHandler(this::handleSaveGame);
     view.setLoadGameHandler(this::handleLoadGame);
 
     // Initialize view with current game state
@@ -99,17 +98,6 @@ public class BoardGameController implements GameObserver {
     }
   }
 
-  private void handleSaveGame() {
-    try {
-      String filename = view.showSaveDialog();
-      if (filename != null && !filename.isEmpty()) {
-        model.saveGame(filename);
-        view.showMessage("Game Saved", "Game successfully saved to " + filename);
-      }
-    } catch (BoardGameException e) {
-      view.showError("Error Saving Game", e.getMessage());
-    }
-  }
 
   private void handleLoadGame() {
     try {

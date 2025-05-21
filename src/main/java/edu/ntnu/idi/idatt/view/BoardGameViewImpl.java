@@ -30,12 +30,10 @@ public class BoardGameViewImpl implements BoardGameView {
   private Label statusLabel;
   private Button rollButton;
   private Button newGameButton;
-  private Button saveButton;
   private Button loadButton;
 
   private Runnable rollDiceHandler;
   private Runnable newGameHandler;
-  private Runnable saveGameHandler;
   private Runnable loadGameHandler;
 
   private BoardGame model;
@@ -68,7 +66,6 @@ public class BoardGameViewImpl implements BoardGameView {
     // Game controls at bottom
     rollButton = new Button("Roll Dice");
     newGameButton = new Button("New Game");
-    saveButton = new Button("Save Game");
     loadButton = new Button("Load Game");
 
     diceView = new DiceView(model.getDice().getNumberOfDice());
@@ -85,19 +82,13 @@ public class BoardGameViewImpl implements BoardGameView {
       }
     });
 
-    saveButton.setOnAction(e -> {
-      if (saveGameHandler != null) {
-        saveGameHandler.run();
-      }
-    });
-
     loadButton.setOnAction(e -> {
       if (loadGameHandler != null) {
         loadGameHandler.run();
       }
     });
 
-    HBox controls = new HBox(15, rollButton, diceView, newGameButton, saveButton, loadButton);
+    HBox controls = new HBox(15, rollButton, diceView, newGameButton, loadButton);
     controls.setAlignment(Pos.CENTER);
     controls.setPadding(new Insets(15, 0, 0, 0));
 
@@ -205,21 +196,6 @@ public class BoardGameViewImpl implements BoardGameView {
   }
 
   @Override
-  public String showSaveDialog() {
-    FileChooser fileChooser = new FileChooser();
-    fileChooser.setTitle("Save Game");
-    fileChooser.getExtensionFilters().add(
-      new FileChooser.ExtensionFilter("JSON Files", "*.json")
-    );
-    fileChooser.setInitialDirectory(
-      new File(System.getProperty("user.dir") + "/src/main/resources")
-    );
-
-    File file = fileChooser.showSaveDialog(root.getScene().getWindow());
-    return file != null ? file.getAbsolutePath() : null;
-  }
-
-  @Override
   public String showLoadDialog() {
     FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle("Load Game");
@@ -242,11 +218,6 @@ public class BoardGameViewImpl implements BoardGameView {
   @Override
   public void setNewGameHandler(Runnable handler) {
     this.newGameHandler = handler;
-  }
-
-  @Override
-  public void setSaveGameHandler(Runnable handler) {
-    this.saveGameHandler = handler;
   }
 
   @Override

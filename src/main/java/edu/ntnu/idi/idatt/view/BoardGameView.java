@@ -20,11 +20,9 @@ public interface BoardGameView {
   void showError(String title, String message);
   void showMessage(String title, String message);
 
-  String showSaveDialog();
   String showLoadDialog();
 
   void setRollDiceHandler(Runnable handler);
   void setNewGameHandler(Runnable handler);
-  void setSaveGameHandler(Runnable handler);
   void setLoadGameHandler(Runnable handler);
 }
