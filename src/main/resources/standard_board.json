@@ -53,8 +53,8 @@
       "row": 9,
       "col": 7,
       "nextTile": 9,
-      "action" : {
-        "type" : "SkipTurnAction"
+      "action": {
+        "type": "SkipTurnAction"
       }
     },
     {
@@ -101,7 +101,10 @@
       "id": 15,
       "row": 8,
       "col": 5,
-      "nextTile": 16
+      "nextTile": 16,
+      "action": {
+        "type": "SkipTurnAction"
+      }
     },
     {
       "id": 16,
@@ -221,7 +224,10 @@
       "id": 33,
       "row": 6,
       "col": 7,
-      "nextTile": 34
+      "nextTile": 34,
+      "action": {
+        "type": "SkipTurnAction"
+      }
     },
     {
       "id": 34,
@@ -309,7 +315,10 @@
       "id": 47,
       "row": 5,
       "col": 6,
-      "nextTile": 48
+      "nextTile": 48,
+      "action": {
+        "type": "SkipTurnAction"
+      }
     },
     {
       "id": 48,
@@ -383,7 +392,10 @@
       "id": 58,
       "row": 4,
       "col": 2,
-      "nextTile": 59
+      "nextTile": 59,
+      "action": {
+        "type": "SkipTurnAction"
+      }
     },
     {
       "id": 59,
@@ -509,7 +521,10 @@
       "id": 77,
       "row": 2,
       "col": 3,
-      "nextTile": 78
+      "nextTile": 78,
+      "action": {
+        "type": "SkipTurnAction"
+      }
     },
     {
       "id": 78,
@@ -585,7 +600,10 @@
       "id": 89,
       "row": 1,
       "col": 8,
-      "nextTile": 90
+      "nextTile": 90,
+      "action": {
+        "type": "SkipTurnAction"
+      }
     },
     {
       "id": 90,
