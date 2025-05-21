@@ -120,6 +120,9 @@ public class BoardGame implements ObservableGame {
    * Advances to the next player
    */
   public void advanceToNextPlayer() {
+    if (players.isEmpty()) {
+      return;
+    }
     currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
     notifyObservers(new GameEvent(GameEventType.TURN_CHANGED, getCurrentPlayer()));
   }
@@ -139,6 +142,22 @@ public class BoardGame implements ObservableGame {
     if (finished && winner != null) {
       notifyObservers(new GameEvent(GameEventType.GAME_OVER, winner));
     }
+  }
+
+  /**
+   * Resets the current player index to 0
+   */
+  public void resetCurrentPlayerIndex() {
+    this.currentPlayerIndex = 0;
+  }
+
+  /**
+   * Resets the entire game state for a new game
+   */
+  public void resetGameState() {
+    this.gameFinished = false;
+    this.winner = null;
+    this.currentPlayerIndex = 0;
   }
 
   public boolean isFinished() {
@@ -162,6 +181,9 @@ public class BoardGame implements ObservableGame {
   }
 
   public Player getCurrentPlayer() {
+    if (players.isEmpty()) {
+      throw new IllegalStateException("No players in the game");
+    }
     return players.get(currentPlayerIndex);
   }
 
@@ -189,9 +211,7 @@ public class BoardGame implements ObservableGame {
       this.board = boardHandler.readFromFile(filename);
 
       // Reset game state
-      this.gameFinished = false;
-      this.winner = null;
-      this.currentPlayerIndex = 0;
+      resetGameState();
 
       // Place players at start position or restore their positions
       // For simplicity in this implementation, just place them at start

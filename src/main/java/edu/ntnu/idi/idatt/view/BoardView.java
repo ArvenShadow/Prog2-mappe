@@ -5,6 +5,8 @@ import edu.ntnu.idi.idatt.model.Board;
 import edu.ntnu.idi.idatt.model.Player;
 import edu.ntnu.idi.idatt.model.Tile;
 import javafx.animation.TranslateTransition;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -21,12 +23,12 @@ import java.util.Map;
 public class BoardView extends Pane {
   private Board board;
   private Map<Integer, Rectangle> tileViews = new HashMap<>();
-  private Map<Player, Circle> playerTokens = new HashMap<>();
+  private Map<Player, ImageView> playerTokens = new HashMap<>();
   private Map<Integer, Color> playerColors = new HashMap<>();
 
   private static final double TILE_SIZE = 60;
   private static final double TILE_GAP = 5;
-  private static final double TOKEN_RADIUS = 15;
+  private static final double TOKEN_SIZE = 45; // Size for token images
   private static final Duration ANIMATION_DURATION = Duration.millis(500);
 
   private static final Color[] PLAYER_COLORS = {
@@ -137,50 +139,88 @@ public class BoardView extends Pane {
       return;
     }
 
-    Circle playerToken = playerTokens.get(player);
+    ImageView playerToken = playerTokens.get(player);
     if (playerToken == null) {
       playerToken = createPlayerToken(player);
       playerTokens.put(player, playerToken);
       this.getChildren().add(playerToken);
     }
 
-    double targetX = tileRect.getX() + TILE_SIZE / 2;
-    double targetY = tileRect.getY() + TILE_SIZE / 2;
+    double targetX = tileRect.getX() + TILE_SIZE / 2 - TOKEN_SIZE / 2;
+    double targetY = tileRect.getY() + TILE_SIZE / 2 - TOKEN_SIZE / 2;
 
     int playerIndex = new ArrayList<>(playerTokens.keySet()).indexOf(player);
-    targetX += (playerIndex % 2) * (TOKEN_RADIUS * 1.5) - TOKEN_RADIUS * 0.75;
-    targetY += (playerIndex / 2) * (TOKEN_RADIUS * 1.5) - TOKEN_RADIUS * 0.75;
+    targetX += (playerIndex % 2) * (TOKEN_SIZE * 0.7) - TOKEN_SIZE * 0.35;
+    targetY += (playerIndex / 2) * (TOKEN_SIZE * 0.7) - TOKEN_SIZE * 0.35;
 
     TranslateTransition transition = new TranslateTransition(ANIMATION_DURATION, playerToken);
-    transition.setToX(targetX - playerToken.getCenterX());
-    transition.setToY(targetY - playerToken.getCenterY());
+    transition.setToX(targetX - playerToken.getX());
+    transition.setToY(targetY - playerToken.getY());
     transition.play();
 
     playerToken.toFront();
   }
 
-  private Circle createPlayerToken(Player player) {
+  private ImageView createPlayerToken(Player player) {
     int playerIndex = new ArrayList<>(playerTokens.keySet()).size();
     Color playerColor = PLAYER_COLORS[playerIndex % PLAYER_COLORS.length];
     playerColors.put(playerIndex, playerColor);
 
-    Circle playerToken = new Circle(TOKEN_RADIUS, playerColor);
-    playerToken.setStroke(Color.BLACK);
-    playerToken.setStrokeWidth(2);
+    ImageView playerToken = new ImageView();
+    playerToken.setFitWidth(TOKEN_SIZE);
+    playerToken.setFitHeight(TOKEN_SIZE);
+    playerToken.setPreserveRatio(true);
 
-    Text name = new Text(player.getName().substring(0, 1));
-    name.setFont(Font.font("Arial", TOKEN_RADIUS));
-    name.setFill(Color.WHITE);
-    name.setX(playerToken.getCenterX() - TOKEN_RADIUS / 4);
-    name.setY(playerToken.getCenterY() + TOKEN_RADIUS / 4);
+    // Try to load token image
+    String tokenType = player.getTokenType().toLowerCase();
+    try {
+      Image tokenImage = new Image(
+        getClass().getResourceAsStream("/images/tokens/" + tokenType + ".png")
+      );
+      playerToken.setImage(tokenImage);
+    } catch (Exception e) {
+      // Fallback: create a colored circle if image can't be loaded
+      System.out.println("Could not load token image for: " + tokenType + ", using fallback");
 
-    this.getChildren().add(name);
+      // Create a simple colored rectangle as fallback
+      Rectangle fallbackRect = new Rectangle(TOKEN_SIZE, TOKEN_SIZE, playerColor);
+      fallbackRect.setStroke(Color.BLACK);
+      fallbackRect.setArcWidth(5);
+      fallbackRect.setArcHeight(5);
+
+      // Convert rectangle to image and use it
+      playerToken.setImage(createFallbackImage(playerColor));
+    }
 
     return playerToken;
   }
 
+  /**
+   * Creates a fallback image when token image cannot be loaded
+   */
+  private Image createFallbackImage(Color color) {
+    try {
+      // Create a simple colored circle as fallback
+      javafx.scene.canvas.Canvas canvas = new javafx.scene.canvas.Canvas(TOKEN_SIZE, TOKEN_SIZE);
+      javafx.scene.canvas.GraphicsContext gc = canvas.getGraphicsContext2D();
+
+      gc.setFill(color);
+      gc.fillOval(2, 2, TOKEN_SIZE - 4, TOKEN_SIZE - 4);
+      gc.setStroke(Color.BLACK);
+      gc.setLineWidth(2);
+      gc.strokeOval(2, 2, TOKEN_SIZE - 4, TOKEN_SIZE - 4);
+
+      javafx.scene.SnapshotParameters params = new javafx.scene.SnapshotParameters();
+      params.setFill(Color.TRANSPARENT);
+      return canvas.snapshot(params, null);
+    } catch (Exception e) {
+      // If all else fails, return null and handle gracefully
+      return null;
+    }
+  }
+
   public void clearPlayerTokens() {
-    for (Circle playerToken : playerTokens.values()) {
+    for (ImageView playerToken : playerTokens.values()) {
       this.getChildren().remove(playerToken);
     }
     playerTokens.clear();
@@ -198,23 +238,23 @@ public class BoardView extends Pane {
       return;
     }
 
-    Circle playerToken = playerTokens.get(player);
+    ImageView playerToken = playerTokens.get(player);
     if (playerToken == null) {
       playerToken = createPlayerToken(player);
       playerTokens.put(player, playerToken);
       this.getChildren().add(playerToken);
     }
 
-    double targetX = tileRect.getX() + TILE_SIZE / 2;
-    double targetY = tileRect.getY() + TILE_SIZE / 2;
+    double targetX = tileRect.getX() + TILE_SIZE / 2 - TOKEN_SIZE / 2;
+    double targetY = tileRect.getY() + TILE_SIZE / 2 - TOKEN_SIZE / 2;
 
     int playerIndex = new ArrayList<>(playerTokens.keySet()).indexOf(player);
-    targetX += (playerIndex % 2) * (TOKEN_RADIUS * 1.5) - TOKEN_RADIUS * 0.75;
-    targetY += (playerIndex / 2) * (TOKEN_RADIUS * 1.5) - TOKEN_RADIUS * 0.75;
+    targetX += (playerIndex % 2) * (TOKEN_SIZE * 0.7) - TOKEN_SIZE * 0.35;
+    targetY += (playerIndex / 2) * (TOKEN_SIZE * 0.7) - TOKEN_SIZE * 0.35;
 
     TranslateTransition transition = new TranslateTransition(ANIMATION_DURATION, playerToken);
-    transition.setToX(targetX - playerToken.getCenterX());
-    transition.setToY(targetY - playerToken.getCenterY());
+    transition.setToX(targetX - playerToken.getX());
+    transition.setToY(targetY - playerToken.getY());
 
     if (onComplete != null) {
       transition.setOnFinished(event -> onComplete.run());

@@ -21,6 +21,7 @@ public class PlayerCsvHandler implements FileHandler<List<Player>> {
     ALLOWED_TOKENS.add("RaceCar");
     ALLOWED_TOKENS.add("Shoe");
     ALLOWED_TOKENS.add("Thimble");
+    ALLOWED_TOKENS.add("Cat");
   }
 
   public PlayerCsvHandler(BoardGame game) {
