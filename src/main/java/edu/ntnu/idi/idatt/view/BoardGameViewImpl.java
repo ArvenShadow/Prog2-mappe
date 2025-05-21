@@ -197,8 +197,8 @@ public class BoardGameViewImpl implements BoardGameView {
     if (action != null) {
       if (action instanceof LadderAction) {
         LadderAction ladderAction = (LadderAction) action;
-        boolean isUp = ladderAction.getDestinationTileId() > player.getCurrentTile().getTileId();
-        actionDesc = isUp ? "climbs up a ladder" : "slides down a chute";
+
+        actionDesc = ladderAction.isLadder() ? "climbs up a ladder" : "slides down a chute";
       } else if (action.getClass().getSimpleName().contains("Skip")) {
         actionDesc = "will skip next turn";
       }
@@ -206,6 +206,7 @@ public class BoardGameViewImpl implements BoardGameView {
 
     statusLabel.setText(player.getName() + " " + actionDesc);
   }
+
 
   @Override
   public void showActionWithAnimation(Player player, TileAction action, int destinationTileId, Runnable onComplete) {
@@ -216,8 +217,9 @@ public class BoardGameViewImpl implements BoardGameView {
     String actionDesc = "special action";
     if (action != null) {
       if (action instanceof LadderAction) {
-        boolean isUp = destinationTileId > player.getCurrentTile().getTileId();
-        actionDesc = isUp ? "climbs up a ladder" : "slides down a chute";
+        LadderAction ladderAction = (LadderAction) action;
+
+        actionDesc = ladderAction.isLadder() ? "climbs up a ladder" : "slides down a chute";
       } else if (action.getClass().getSimpleName().contains("Skip")) {
         actionDesc = "will skip next turn";
       }

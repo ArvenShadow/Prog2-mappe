@@ -50,6 +50,12 @@ public class LadderAction implements TileAction {
   public int getDestinationTileId() {
     return destinationTileId;
   }
+
+  public boolean isLadder() {
+    return isLadder;
+  }
+
 }
+
 
 
