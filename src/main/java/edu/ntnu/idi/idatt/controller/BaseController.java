@@ -1,6 +1,5 @@
 package edu.ntnu.idi.idatt.controller;
 
-import edu.ntnu.idi.idatt.navigation.NavTo;
 import edu.ntnu.idi.idatt.navigation.NavigationManager;
 
 public class BaseController {

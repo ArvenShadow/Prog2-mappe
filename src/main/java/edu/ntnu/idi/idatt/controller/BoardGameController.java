@@ -26,90 +26,111 @@ public class BoardGameController implements GameObserver {
     view.setNewGameHandler(this::handleNewGame);
     view.setSaveGameHandler(this::handleSaveGame);
     view.setLoadGameHandler(this::handleLoadGame);
-  }
 
-  public void initGame() {
-    // Initialize a new game
-    model.createBoard(10, 10); // Standard 10x10 board
-    model.createDice(2); // Two dice
-
-    // Update the view with initial state
+    // Initialize view with current game state
     view.renderBoard(model.getBoard());
-  }
+    view.updatePlayersList(model.getPlayers());
 
-  public void addPlayer(String name, String token) {
-    try {
-      Player player = new Player(name, model);
-      player.setTokenType(token);
-      model.addPlayer(player);
-
-      // Place player at start position
-      player.placeOnTile(model.getBoard().getTile(1));
-
-      view.updatePlayersList(model.getPlayers());
-    } catch (IllegalArgumentException e) {
-      view.showError("Error adding player", e.getMessage());
+    // Highlight current player
+    if (!model.getPlayers().isEmpty()) {
+      view.highlightCurrentPlayer(model.getCurrentPlayer());
     }
   }
 
-  public void handleRollDice() {
+  private void handleRollDice() {
     try {
+      if (model.isFinished()) {
+        view.showMessage("Game Over", "The game is already finished. Start a new game to play again.");
+        return;
+      }
+
       Player currentPlayer = model.getCurrentPlayer();
+
+      // Check if player should skip turn
+      if (currentPlayer.getSkipsNextTurn()) {
+        currentPlayer.setSkipsNextTurn(false);
+        view.showMessage("Skip Turn",
+          currentPlayer.getName() + " skips this turn.");
+
+        // Move to next player
+        int nextPlayerIndex = (model.getPlayers().indexOf(currentPlayer) + 1) % model.getPlayers().size();
+        Player nextPlayer = model.getPlayers().get(nextPlayerIndex);
+        view.highlightCurrentPlayer(nextPlayer);
+        return;
+      }
+
+      // Play turn - model will notify us via observer pattern
       model.playTurn(currentPlayer);
 
-      // View is updated via observer notifications
     } catch (Exception e) {
       view.showError("Error during turn", e.getMessage());
     }
   }
 
-  public void handleNewGame() {
+  private void handleNewGame() {
     try {
-      // Clear existing game
-      List<Player> players = model.getPlayers();
+      // Get existing players
+      List<Player> existingPlayers = model.getPlayers();
 
-      // Reinitialize
-      initGame();
+      // Reset the model
+      model.createBoard();
+      model.createDice(2);
 
-      // Re-add players
-      for (Player p : players) {
-        addPlayer(p.getName(), p.getTokenType());
+      // Clear players
+      model.getPlayers().clear();
+
+      // Add players back with reset positions
+      for (Player oldPlayer : existingPlayers) {
+        Player newPlayer = new Player(oldPlayer.getName(), model, oldPlayer.getTokenType());
+        model.addPlayer(newPlayer);
+        newPlayer.placeOnTile(model.getBoard().getTile(1));
       }
+
+      // Update view
+      view.renderBoard(model.getBoard());
+      view.updatePlayersList(model.getPlayers());
+      view.highlightCurrentPlayer(model.getCurrentPlayer());
+
+      // Re-enable roll button if it was disabled
+      view.showMessage("New Game", "A new game has been started.");
+
     } catch (Exception e) {
       view.showError("Error creating new game", e.getMessage());
     }
   }
 
-  public void handleSaveGame() {
+  private void handleSaveGame() {
     try {
       String filename = view.showSaveDialog();
       if (filename != null && !filename.isEmpty()) {
         model.saveGame(filename);
-        view.showMessage("Game saved", "Game successfully saved to " + filename);
+        view.showMessage("Game Saved", "Game successfully saved to " + filename);
       }
     } catch (BoardGameException e) {
-      view.showError("Error saving game", e.getMessage());
+      view.showError("Error Saving Game", e.getMessage());
     }
   }
 
-  public void handleLoadGame() {
+  private void handleLoadGame() {
     try {
       String filename = view.showLoadDialog();
       if (filename != null && !filename.isEmpty()) {
         model.loadGame(filename);
         view.renderBoard(model.getBoard());
         view.updatePlayersList(model.getPlayers());
-        view.showMessage("Game loaded", "Game successfully loaded from " + filename);
+        view.highlightCurrentPlayer(model.getCurrentPlayer());
+        view.showMessage("Game Loaded", "Game successfully loaded from " + filename);
       }
     } catch (BoardGameException e) {
-      view.showError("Error loading game", e.getMessage());
+      view.showError("Error Loading Game", e.getMessage());
     }
   }
 
   @Override
   public void onGameEvent(GameEvent event) {
-    // Handle different types of game events
-    switch (event.getType()) {
+    GameEventType type = event.getType();
+
+    switch (type) {
       case BOARD_CREATED:
         view.renderBoard(model.getBoard());
         break;
@@ -136,6 +157,11 @@ public class BoardGameController implements GameObserver {
 
       case GAME_OVER:
         view.showGameOver(event.getPlayer());
+        break;
+
+      // Add cases for LADDER_CLIMBED and CHUTE_SLID if added to GameEventType
+      default:
+        // No specific handling for other event types
         break;
     }
   }

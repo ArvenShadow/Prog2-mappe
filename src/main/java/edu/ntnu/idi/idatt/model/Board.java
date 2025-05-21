@@ -56,4 +56,30 @@ public class Board {
   public int getNumCols() {
     return numCols;
   }
+
+  /**
+   * Gets the final tile in the board.
+   * @return The final tile (with highest ID)
+   */
+  public Tile getFinalTile() {
+    int maxId = numRows * numCols;
+    return tiles.get(maxId);
+  }
+
+  /**
+   * Gets the ID of the final tile.
+   * @return The ID of the final tile
+   */
+  public int getFinalTileId() {
+    return numRows * numCols;
+  }
+
+  /**
+   * Gets all tiles in the board.
+   * @return Map of all tiles with their IDs
+   */
+  public Map<Integer, Tile> getAllTiles() {
+    return new HashMap<>(tiles);
+  }
+
 }

@@ -72,7 +72,7 @@ public class CharacterSelectionView {
     playersGrid.add(player3.getPane(), 0, 1);
     playersGrid.add(player4.getPane(), 1, 1);
 
-    // Navigation buttons
+    // NavigationManager buttons
     Button backButton = new Button("Back");
     Button startButton = new Button("Start Game");
 

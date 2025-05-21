@@ -1,17 +1,8 @@
 package edu.ntnu.idi.idatt.navigation;
 
 public enum NavTo {
-  // Initial screens
-  START_SCREEN,
-
-  // Game setup
+  MAIN_MENU,
   CHARACTER_SELECTION,
-
-
-  // Game screens
   GAME_SCREEN,
-  LOAD_GAME_SCREEN,
-
-  // Utility screens
-  SETTINGS_SCREEN,
+  LOAD_GAME
 }

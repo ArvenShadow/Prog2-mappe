@@ -3,13 +3,15 @@ package edu.ntnu.idi.idatt.model;
 import edu.ntnu.idi.idatt.event.GameEvent;
 import edu.ntnu.idi.idatt.event.GameEventType;
 import edu.ntnu.idi.idatt.event.GameObserver;
+import edu.ntnu.idi.idatt.event.ObservableGame;
 import edu.ntnu.idi.idatt.exception.BoardGameException;
 import edu.ntnu.idi.idatt.action.TileAction;
+import edu.ntnu.idi.idatt.io.BoardJsonHandler;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class BoardGame {
+public class BoardGame implements ObservableGame {
   private Board board;
   private Dice dice;
   private List<Player> players;
@@ -25,10 +27,15 @@ public class BoardGame {
     this.gameFinished = false;
   }
 
-  public void createBoard(int rows, int cols) {
-    this.board = new Board(rows, cols);
-    this.board.setupGameBoard();
-    notifyObservers(new GameEvent(GameEventType.BOARD_CREATED, null));
+  public void createBoard() {
+    try {
+      this.board = edu.ntnu.idi.idatt.factory.BoardGameFactory.createBoard();
+      notifyObservers(new GameEvent(GameEventType.BOARD_CREATED, null));
+    } catch (RuntimeException e) {
+      // Log error or handle exception
+      System.err.println("Error creating board: " + e.getMessage());
+      throw e;
+    }
   }
 
   public void createDice(int numberOfDice) {
@@ -122,27 +129,55 @@ public class BoardGame {
     return players.get(currentPlayerIndex);
   }
 
-  // Observer pattern methods
+  @Override
   public void addObserver(GameObserver observer) {
     observers.add(observer);
   }
 
+  @Override
   public void removeObserver(GameObserver observer) {
     observers.remove(observer);
   }
 
-  private void notifyObservers(GameEvent event) {
+  @Override
+  public void notifyObservers(GameEvent event) {
     for (GameObserver observer : observers) {
       observer.onGameEvent(event);
     }
   }
 
-  // File handling methods
+  // Add placeholder implementations for save/load game
   public void saveGame(String filename) throws BoardGameException {
-    // Implementation will be added later
+    // Basic implementation that could be expanded later
+    // For now, just simulate saving board and player states
+    try {
+      BoardJsonHandler boardHandler = new BoardJsonHandler();
+      boardHandler.writeToFile(board, filename);
+      // In a full implementation, we'd also save player state
+    } catch (Exception e) {
+      throw new BoardGameException("Failed to save game: " + e.getMessage(), e);
+    }
   }
 
   public void loadGame(String filename) throws BoardGameException {
-    // Implementation will be added later
+    try {
+      BoardJsonHandler boardHandler = new BoardJsonHandler();
+      this.board = boardHandler.readFromFile(filename);
+
+      // Reset game state
+      this.gameFinished = false;
+      this.winner = null;
+      this.currentPlayerIndex = 0;
+
+      // Place players at start position or restore their positions
+      // For simplicity in this implementation, just place them at start
+      for (Player player : players) {
+        player.placeOnTile(board.getTile(1));
+      }
+
+      notifyObservers(new GameEvent(GameEventType.BOARD_CREATED, null));
+    } catch (Exception e) {
+      throw new BoardGameException("Failed to load game: " + e.getMessage(), e);
+    }
   }
 }
