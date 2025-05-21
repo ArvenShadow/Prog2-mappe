@@ -8,7 +8,6 @@ public class Tile {
   private int tileId;
   private Tile nextTile;
   private TileAction tileAction;
-
   private int row;
   private int col;
 

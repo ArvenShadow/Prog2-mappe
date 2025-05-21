@@ -1,6 +1,6 @@
 package edu.ntnu.idi.idatt;
 
-import edu.ntnu.idi.idatt.controller.GameController;
+import edu.ntnu.idi.idatt.controller.BoardGameController;
 import edu.ntnu.idi.idatt.model.BoardGame;
 import edu.ntnu.idi.idatt.model.Player;
 import javafx.application.Application;
@@ -15,6 +15,7 @@ public class Main extends Application {
     BoardGame game = new BoardGame();
     game.createBoard();
     game.createDice(1);
+
 
     // Create default players for testing
     Player player1 = new Player("Player 1", game, "TopHat");
@@ -36,8 +37,7 @@ public class Main extends Application {
     scene.getStylesheets().add(getClass().getResource("/styles/game.css").toExternalForm());
 
     // Create the controller
-    GameController controller = new GameController(game, root, primaryStage);
-
+    BoardGameController controller = new BoardGameController(game, root, primaryStage);
     // Set up the stage
     primaryStage.setTitle("Snakes and Ladders");
     primaryStage.setScene(scene);

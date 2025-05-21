@@ -52,7 +52,10 @@
       "id": 8,
       "row": 9,
       "col": 7,
-      "nextTile": 9
+      "nextTile": 9,
+      "action" : {
+        "type" : "SkipTurnAction"
+      }
     },
     {
       "id": 9,

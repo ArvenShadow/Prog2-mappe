@@ -1,12 +1,11 @@
 package edu.ntnu.idi.idatt.model;
 
-import edu.ntnu.idi.idatt.event.GameEvent;
-
 public class Player {
   private String name;
   private Tile currentTile;
   private BoardGame game;
   private String tokenType; // TopHat, RaceCar etc..
+  private boolean skipsNextTurn = false;
 
   public Player(String name, BoardGame game, String tokenType) {
     this.name = name;
@@ -24,30 +23,19 @@ public class Player {
       throw new IllegalStateException("Player not on board");
     }
 
-    System.out.println(name + " moving " + steps + " steps from tile " + currentTile.getTileId());
+    int currentPosition = currentTile.getTileId();
+    int newPosition = currentPosition + steps;
 
-    // Find target tile by following next tile links
-    Tile targetTile = currentTile;
-    Tile oldTile = currentTile;
+    Tile targetTile = game.getBoard().getTile(newPosition);
 
-    for (int i = 0; i < steps; i++) {
-      if (targetTile.getNextTile() != null) {
-        targetTile = targetTile.getNextTile();
-      } else {
-        // Reached the end of the board
-        break;
-      }
+    if (targetTile != null) {
+      System.out.println(name + " moves " + steps + " steps to tile " + targetTile.getTileId());
+      placeOnTile(targetTile);
+      targetTile.landAction(this);
+
+    } else {
+      throw new IllegalStateException("No tile at position " + newPosition);
     }
-
-    // Move to the new tile
-    placeOnTile(targetTile);
-
-    // Notify that player has moved (needed for animation)
-    game.notifyObservers(new GameEvent(GameEvent.EventType.PLAYER_MOVED,
-      this, oldTile, targetTile));
-
-    // After movement is complete, perform any tile actions
-    targetTile.landAction(this);
   }
 
   public boolean hasWon(int finalTileId) {
@@ -68,6 +56,13 @@ public class Player {
 
   public String getTokenType() {
     return tokenType;
+  }
+
+  public void setSkipsNextTurn(boolean skipsNextTurn) {
+    this.skipsNextTurn = skipsNextTurn;
+  }
+  public boolean getSkipsNextTurn() {
+    return skipsNextTurn;
   }
 
 }

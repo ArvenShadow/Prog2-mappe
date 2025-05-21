@@ -13,7 +13,7 @@ public class BoardJsonGenerator {
 
     JsonArray tilesArray = new JsonArray();
 
-    // Generate all 100 tiles in snake pattern
+
     for (int id = 1; id <= 100; id++) {
       int row = 9 - ((id - 1) / 10);
       int col = (row % 2 == 1) ? ((id - 1) % 10) : (9 - ((id - 1) % 10));
@@ -23,7 +23,7 @@ public class BoardJsonGenerator {
       tileJson.addProperty("row", row);
       tileJson.addProperty("col", col);
 
-      // Add next tile for all except the last one
+
       if (id < 100) {
         tileJson.addProperty("nextTile", id + 1);
       }
@@ -31,8 +31,6 @@ public class BoardJsonGenerator {
       tilesArray.add(tileJson);
     }
 
-    // Add all ladders and chutes (both use LadderAction)
-    // Ladders (going up)
     addAction(tilesArray, 4, 14);
     addAction(tilesArray, 9, 31);
     addAction(tilesArray, 20, 38);
@@ -41,7 +39,6 @@ public class BoardJsonGenerator {
     addAction(tilesArray, 51, 67);
     addAction(tilesArray, 63, 81);
 
-    // Chutes (going down)
     addAction(tilesArray, 17, 7);
     addAction(tilesArray, 54, 34);
     addAction(tilesArray, 62, 19);
@@ -53,7 +50,6 @@ public class BoardJsonGenerator {
 
     boardJson.add("tiles", tilesArray);
 
-    // Write to file with pretty printing
     try (FileWriter writer = new FileWriter(outputFilePath)) {
       Gson gson = new GsonBuilder().setPrettyPrinting().create();
       gson.toJson(boardJson, writer);

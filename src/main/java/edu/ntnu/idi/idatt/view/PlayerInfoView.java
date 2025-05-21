@@ -29,37 +29,32 @@ public class PlayerInfoView extends VBox {
   }
 
   public void updatePlayerInfo(BoardView boardView) {
-    // Clear all except title
-    while (getChildren().size() > 1) {
+    while(getChildren().size() > 1) {
       getChildren().remove(1);
     }
 
-    // Add player info
     for (int i = 0; i < players.size(); i++) {
       Player player = players.get(i);
 
       VBox playerBox = new VBox(5);
       playerBox.setPadding(new Insets(5));
-      playerBox.setStyle("-fx-border-color: #cccccc; -fx-border-radius: 5;");
+      playerBox.setStyle("-fx-background-color: #cccccc; -fx-border-radius: 5;");
 
-      // Player header with colored circle
       Label nameLabel = new Label(player.getName());
       nameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
 
-      // Color indicator
       Circle colorIndicator = new Circle(8);
       colorIndicator.setFill(boardView.getPlayerColor(i));
       colorIndicator.setStroke(Color.BLACK);
 
-      // Position info
       int position = (player.getCurrentTile() != null) ? player.getCurrentTile().getTileId() : 0;
       Label positionLabel = new Label("Position: " + position);
 
-      // Token type
       Label tokenLabel = new Label("Token: " + player.getTokenType());
 
       playerBox.getChildren().addAll(nameLabel, colorIndicator, positionLabel, tokenLabel);
       getChildren().add(playerBox);
     }
   }
+
 }
