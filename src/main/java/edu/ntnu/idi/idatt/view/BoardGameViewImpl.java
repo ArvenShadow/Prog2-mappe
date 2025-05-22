@@ -6,6 +6,10 @@ import edu.ntnu.idi.idatt.model.Board;
 import edu.ntnu.idi.idatt.model.BoardGame;
 import edu.ntnu.idi.idatt.model.Player;
 
+import edu.ntnu.idi.idatt.view.ingame.BoardView;
+import edu.ntnu.idi.idatt.view.ingame.DiceView;
+import edu.ntnu.idi.idatt.view.ingame.PlayerInfoView;
+import edu.ntnu.idi.idatt.view.ingame.SettingsPanel;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -15,7 +19,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.util.Duration;
 

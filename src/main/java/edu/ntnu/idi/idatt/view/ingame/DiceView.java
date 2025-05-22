@@ -1,4 +1,4 @@
-package edu.ntnu.idi.idatt.view;
+package edu.ntnu.idi.idatt.view.ingame;
 
 import javafx.animation.RotateTransition;
 import javafx.geometry.Insets;

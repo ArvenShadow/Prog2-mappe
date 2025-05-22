@@ -1,4 +1,4 @@
-package edu.ntnu.idi.idatt.view;
+package edu.ntnu.idi.idatt.view.ingame;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;

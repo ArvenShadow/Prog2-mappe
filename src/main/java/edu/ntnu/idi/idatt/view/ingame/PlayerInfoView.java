@@ -1,4 +1,4 @@
-package edu.ntnu.idi.idatt.view;
+package edu.ntnu.idi.idatt.view.ingame;
 
 import edu.ntnu.idi.idatt.model.Player;
 import javafx.geometry.Insets;

@@ -1,4 +1,4 @@
-package edu.ntnu.idi.idatt.view;
+package edu.ntnu.idi.idatt.view.ingame;
 
 import edu.ntnu.idi.idatt.action.LadderAction;
 import edu.ntnu.idi.idatt.action.SkipTurnAction;
@@ -13,7 +13,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
 
