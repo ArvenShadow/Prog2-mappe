@@ -1,29 +1,38 @@
 package edu.ntnu.idi.idatt.view;
 
+import edu.ntnu.idi.idatt.controller.CharacterSelectionController;
 import edu.ntnu.idi.idatt.model.PlayerData;
+import edu.ntnu.idi.idatt.view.components.PlayerPanel;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class CharacterSelectionView {
   private BorderPane root;
   private List<PlayerPanel> playerPanels;
   private List<String> availableTokens;
+
+  // Handlers
   private Runnable startGameHandler;
   private Runnable backHandler;
+  private Runnable savePlayersHandler;
+  private Runnable loadPlayersHandler;
+
+  private CharacterSelectionController controller;
 
   public CharacterSelectionView() {
     initializeTokens();
     createUI();
+
+    // Create controller after UI is ready
+    this.controller = new CharacterSelectionController(this);
   }
 
   private void initializeTokens() {
@@ -40,39 +49,67 @@ public class CharacterSelectionView {
     root.setPadding(new Insets(20));
     root.getStyleClass().add("character-selection");
 
+    VBox contentBox = new VBox(20);
+    contentBox.setAlignment(Pos.CENTER);
+
     // Title
     Label titleLabel = new Label("Select Players");
     titleLabel.setFont(javafx.scene.text.Font.font("Arial", 24));
     titleLabel.getStyleClass().add("title-label");
 
-    // Player panels
-    playerPanels = new ArrayList<>();
+    // Create player panels
+    GridPane playersGrid = createPlayerPanels();
 
-    // Create a GridPane to hold player panels
+    // Create button sections
+    HBox fileOperationBox = createFileOperationButtons();
+    HBox navigationBox = createNavigationButtons();
+
+    contentBox.getChildren().addAll(titleLabel, playersGrid, fileOperationBox, navigationBox);
+    root.setCenter(contentBox);
+  }
+
+  private GridPane createPlayerPanels() {
+    playerPanels = new ArrayList<>();
     GridPane playersGrid = new GridPane();
     playersGrid.setHgap(20);
     playersGrid.setVgap(20);
     playersGrid.setAlignment(Pos.CENTER);
 
-    // Add two default active players
-    PlayerPanel player1 = new PlayerPanel(1, true);
-    PlayerPanel player2 = new PlayerPanel(2, true);
-    playerPanels.add(player1);
-    playerPanels.add(player2);
+    // Create 4 player panels (2 active by default)
+    for (int i = 1; i <= 4; i++) {
+      PlayerPanel panel = new PlayerPanel(i, i <= 2, availableTokens);
+      playerPanels.add(panel);
 
-    // Add two inactive players
-    PlayerPanel player3 = new PlayerPanel(3, false);
-    PlayerPanel player4 = new PlayerPanel(4, false);
-    playerPanels.add(player3);
-    playerPanels.add(player4);
+      int row = (i - 1) / 2;
+      int col = (i - 1) % 2;
+      playersGrid.add(panel.getPane(), col, row);
+    }
 
-    // Add to grid
-    playersGrid.add(player1.getPane(), 0, 0);
-    playersGrid.add(player2.getPane(), 1, 0);
-    playersGrid.add(player3.getPane(), 0, 1);
-    playersGrid.add(player4.getPane(), 1, 1);
+    return playersGrid;
+  }
 
-    // Navigation buttons
+  private HBox createFileOperationButtons() {
+    Button savePlayersButton = new Button("Save Players");
+    Button loadPlayersButton = new Button("Load Players");
+
+    savePlayersButton.setOnAction(e -> {
+      if (savePlayersHandler != null) {
+        savePlayersHandler.run();
+      }
+    });
+
+    loadPlayersButton.setOnAction(e -> {
+      if (loadPlayersHandler != null) {
+        loadPlayersHandler.run();
+      }
+    });
+
+    HBox fileOperationBox = new HBox(15, savePlayersButton, loadPlayersButton);
+    fileOperationBox.setAlignment(Pos.CENTER);
+    return fileOperationBox;
+  }
+
+  private HBox createNavigationButtons() {
     Button backButton = new Button("Back");
     Button startButton = new Button("Start Game");
 
@@ -83,66 +120,34 @@ public class CharacterSelectionView {
     });
 
     startButton.setOnAction(e -> {
-      if (startGameHandler != null && validatePlayerSelection()) {
+      if (startGameHandler != null && validateAndStart()) {
         startGameHandler.run();
       }
     });
 
-    HBox buttonBox = new HBox(20, backButton, startButton);
-    buttonBox.setAlignment(Pos.CENTER);
-    buttonBox.setPadding(new Insets(20, 0, 0, 0));
-
-    // Layout
-    VBox contentBox = new VBox(20, titleLabel, playersGrid, buttonBox);
-    contentBox.setAlignment(Pos.CENTER);
-
-    root.setCenter(contentBox);
+    HBox navigationBox = new HBox(20, backButton, startButton);
+    navigationBox.setAlignment(Pos.CENTER);
+    navigationBox.setPadding(new Insets(20, 0, 0, 0));
+    return navigationBox;
   }
 
-  private boolean validatePlayerSelection() {
-    int activePlayers = 0;
-    for (PlayerPanel panel : playerPanels) {
-      if (panel.isActive()) {
-        // Check name and token selection
-        if (panel.getPlayerName().trim().isEmpty()) {
-          showAlert("Invalid Selection", "Player " + panel.getPlayerId() + " needs a name.");
-          return false;
-        }
-        if (panel.getSelectedToken() == null) {
-          showAlert("Invalid Selection", "Player " + panel.getPlayerId() + " needs to select a token.");
-          return false;
-        }
-        activePlayers++;
-      }
-    }
-
-    if (activePlayers < 2) {
-      showAlert("Invalid Selection", "At least 2 players are required.");
-      return false;
-    }
-
-    // Check for duplicate tokens
-    List<String> usedTokens = new ArrayList<>();
-    for (PlayerPanel panel : playerPanels) {
-      if (panel.isActive()) {
-        String token = panel.getSelectedToken();
-        if (usedTokens.contains(token)) {
-          showAlert("Invalid Selection", "Each player must have a unique token.");
-          return false;
-        }
-        usedTokens.add(token);
-      }
-    }
-
-    return true;
+  private boolean validateAndStart() {
+    List<PlayerData> selectedPlayers = getSelectedPlayers();
+    return controller.validatePlayerSelection(selectedPlayers);
   }
 
-  private void showAlert(String title, String message) {
-    Alert alert = new Alert(Alert.AlertType.WARNING);
-    alert.setTitle(title);
-    alert.setHeaderText(null);
-    alert.setContentText(message);
-    alert.showAndWait();
+  // Public methods for controller interaction
+  public List<PlayerData> getActivePlayers() {
+    List<PlayerData> activePlayers = new ArrayList<>();
+    for (PlayerPanel panel : playerPanels) {
+      if (panel.hasValidData()) {
+        PlayerData data = new PlayerData();
+        data.setName(panel.getPlayerName().trim());
+        data.setToken(panel.getSelectedToken());
+        activePlayers.add(data);
+      }
+    }
+    return activePlayers;
   }
 
   public List<PlayerData> getSelectedPlayers() {
@@ -158,10 +163,67 @@ public class CharacterSelectionView {
     return selectedPlayers;
   }
 
-  public Parent getRoot() {
-    return root;
+  public void updatePlayersFromData(List<PlayerData> playerDataList) {
+    // Reset all panels
+    for (PlayerPanel panel : playerPanels) {
+      panel.setActive(false);
+      panel.clearData();
+    }
+
+    // Populate with loaded data
+    int panelIndex = 0;
+    for (PlayerData data : playerDataList) {
+      if (panelIndex < playerPanels.size()) {
+        PlayerPanel panel = playerPanels.get(panelIndex);
+        panel.setActive(true);
+        panel.setPlayerName(data.getName());
+        panel.setSelectedToken(data.getToken());
+        panelIndex++;
+      }
+    }
   }
 
+  public String showSaveDialog() {
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.setTitle("Save Players");
+    fileChooser.getExtensionFilters().add(
+      new FileChooser.ExtensionFilter("CSV Files", "*.csv")
+    );
+    fileChooser.setInitialDirectory(new File("src/main/resources/playerFiles"));
+    fileChooser.setInitialFileName("players.csv");
+
+    File file = fileChooser.showSaveDialog(root.getScene().getWindow());
+    return file != null ? file.getAbsolutePath() : null;
+  }
+
+  public String showLoadDialog() {
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.setTitle("Load Players");
+    fileChooser.getExtensionFilters().add(
+      new FileChooser.ExtensionFilter("CSV Files", "*.csv")
+    );
+    fileChooser.setInitialDirectory(new File("src/main/resources/playerFiles"));
+
+    File file = fileChooser.showOpenDialog(root.getScene().getWindow());
+    return file != null ? file.getAbsolutePath() : null;
+  }
+
+  public void showAlert(String title, String message, String alertType) {
+    Alert.AlertType type = switch (alertType) {
+      case "WARNING" -> Alert.AlertType.WARNING;
+      case "ERROR" -> Alert.AlertType.ERROR;
+      case "INFORMATION" -> Alert.AlertType.INFORMATION;
+      default -> Alert.AlertType.NONE;
+    };
+
+    Alert alert = new Alert(type);
+    alert.setTitle(title);
+    alert.setHeaderText(null);
+    alert.setContentText(message);
+    alert.showAndWait();
+  }
+
+  // Handler setters
   public void setStartGameHandler(Runnable handler) {
     this.startGameHandler = handler;
   }
@@ -170,114 +232,15 @@ public class CharacterSelectionView {
     this.backHandler = handler;
   }
 
-  // Inner class to represent a player panel
-  private class PlayerPanel {
-    private final int playerId;
-    private boolean active;
-    private GridPane pane;
-    private TextField nameField;
-    private ComboBox<String> tokenComboBox;
-    private Button toggleButton;
+  public void setSavePlayersHandler(Runnable handler) {
+    this.savePlayersHandler = handler;
+  }
 
-    public PlayerPanel(int playerId, boolean active) {
-      this.playerId = playerId;
-      this.active = active;
-      createPanel();
-    }
+  public void setLoadPlayersHandler(Runnable handler) {
+    this.loadPlayersHandler = handler;
+  }
 
-    private void createPanel() {
-      pane = new GridPane();
-      pane.setPadding(new Insets(10));
-      pane.setHgap(10);
-      pane.setVgap(10);
-      pane.setPrefSize(250, 150);
-      pane.setBorder(new Border(new BorderStroke(
-        Color.GRAY, BorderStrokeStyle.SOLID, new CornerRadii(5), BorderWidths.DEFAULT
-      )));
-
-      Label titleLabel = new Label("Player " + playerId);
-      titleLabel.setFont(javafx.scene.text.Font.font("Arial", 16));
-
-      nameField = new TextField();
-      nameField.setPromptText("Enter player name");
-      nameField.setText("Player " + playerId);
-
-      tokenComboBox = new ComboBox<>();
-      tokenComboBox.getItems().addAll(availableTokens);
-      tokenComboBox.setPromptText("Select token");
-
-      // Token preview
-      ImageView tokenImageView = new ImageView();
-      tokenImageView.setFitWidth(40);
-      tokenImageView.setFitHeight(40);
-      tokenImageView.setPreserveRatio(true);
-
-      tokenComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-        if (newVal != null) {
-          try {
-            Image tokenImage = new Image(Objects.requireNonNull(
-              getClass().getResourceAsStream("/images/tokens/" + newVal.toLowerCase() + ".png")
-            ));
-            tokenImageView.setImage(tokenImage);
-          } catch (Exception e) {
-            tokenImageView.setImage(null);
-          }
-        } else {
-          tokenImageView.setImage(null);
-        }
-      });
-
-      toggleButton = new Button(active ? "Remove" : "Add");
-      toggleButton.setOnAction(e -> {
-        active = !active;
-        updatePanelState();
-      });
-
-      pane.add(titleLabel, 0, 0, 2, 1);
-      pane.add(new Label("Name:"), 0, 1);
-      pane.add(nameField, 1, 1);
-      pane.add(new Label("Token:"), 0, 2);
-      pane.add(tokenComboBox, 1, 2);
-      pane.add(tokenImageView, 2, 2);
-
-      // Add toggle button for players 3 and 4
-      if (playerId > 2) {
-        pane.add(toggleButton, 0, 3, 3, 1);
-      }
-
-      updatePanelState();
-    }
-
-    private void updatePanelState() {
-      toggleButton.setText(active ? "Remove" : "Add");
-      nameField.setDisable(!active);
-      tokenComboBox.setDisable(!active);
-
-      if (active) {
-        pane.setOpacity(1.0);
-      } else {
-        pane.setOpacity(0.6);
-      }
-    }
-
-    public GridPane getPane() {
-      return pane;
-    }
-
-    public int getPlayerId() {
-      return playerId;
-    }
-
-    public boolean isActive() {
-      return active;
-    }
-
-    public String getPlayerName() {
-      return nameField.getText();
-    }
-
-    public String getSelectedToken() {
-      return tokenComboBox.getValue();
-    }
+  public Parent getRoot() {
+    return root;
   }
 }

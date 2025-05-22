@@ -122,7 +122,7 @@ public class BoardView extends Pane {
           }
 
           this.getChildren().add(connection);
-          connection.toBack();
+          //connection.toBack();
         }
       }
     }

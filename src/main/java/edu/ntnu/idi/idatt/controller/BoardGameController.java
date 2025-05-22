@@ -150,6 +150,7 @@ public class BoardGameController implements GameObserver {
   }
 
   private void handleNewGame() {
+
     try {
       // Navigate back to character selection for full game setup
       edu.ntnu.idi.idatt.navigation.NavigationManager.getInstance()
