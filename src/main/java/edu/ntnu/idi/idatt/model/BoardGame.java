@@ -6,6 +6,7 @@ import edu.ntnu.idi.idatt.event.GameObserver;
 import edu.ntnu.idi.idatt.event.ObservableGame;
 import edu.ntnu.idi.idatt.exception.BoardGameException;
 import edu.ntnu.idi.idatt.action.TileAction;
+import edu.ntnu.idi.idatt.exception.InvalidGameStateException;
 import edu.ntnu.idi.idatt.io.BoardJsonHandler;
 
 import java.util.ArrayList;
@@ -41,14 +42,6 @@ public class BoardGame implements ObservableGame {
   public void createDice(int numberOfDice) {
     this.dice = new Dice(numberOfDice);
     notifyObservers(new GameEvent(GameEventType.DICE_CREATED, null));
-  }
-
-  public void addPlayer(Player player) {
-    if (player == null) {
-      throw new IllegalArgumentException("Player cannot be null");
-    }
-    players.add(player);
-    notifyObservers(new GameEvent(GameEventType.PLAYER_ADDED, player));
   }
 
   public void playOneRound() {
@@ -182,9 +175,20 @@ public class BoardGame implements ObservableGame {
 
   public Player getCurrentPlayer() {
     if (players.isEmpty()) {
-      throw new IllegalStateException("No players in the game");
+      throw new InvalidGameStateException("No players in the game");
     }
     return players.get(currentPlayerIndex);
+  }
+
+  public void addPlayer(Player player) {
+    if (player == null) {
+      throw new IllegalArgumentException("Player cannot be null");
+    }
+    if (players.size() >= 5) {
+      throw new InvalidGameStateException("Maximum 5 players allowed");
+    }
+    players.add(player);
+    notifyObservers(new GameEvent(GameEventType.PLAYER_ADDED, player));
   }
 
   @Override

@@ -25,65 +25,80 @@ public class PlayerCsvHandler implements FileHandler<List<Player>> {
   }
 
   public PlayerCsvHandler(BoardGame game) {
+    if (game == null) {
+      throw new IllegalArgumentException("BoardGame cannot be null");
+    }
     this.game = game;
   }
 
   @Override
   public List<Player> readFromFile(String fileName) throws BoardGameException {
     List<Player> players = new ArrayList<>();
-    boolean isHeader = true;
+    Set<String> usedTokens = new HashSet<>();
 
     try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
       String line;
+      boolean isHeader = true;
+
       while ((line = reader.readLine()) != null) {
-        // Skip header row
         if (isHeader) {
           isHeader = false;
           continue;
         }
 
+        line = line.trim();
+        if (line.isEmpty()) continue;
+
         String[] parts = line.split(",");
-        if (parts.length == 2) {
-          String name = parts[0].trim();
-          String token = parts[1].trim();
-
-          // Validate token
-          if (!ALLOWED_TOKENS.contains(token)) {
-            throw new InvalidPlayerTokenException(
-              "Invalid token type: " + token + ". Allowed tokens are: " +
-                String.join(", ", ALLOWED_TOKENS));
-          }
-
-          players.add(new Player(name, game, token));
+        if (parts.length != 2) {
+          throw new BoardGameException("Invalid CSV format. Expected: Name,Token");
         }
+
+        String name = parts[0].trim();
+        String token = parts[1].trim();
+
+        // Validate token
+        if (!ALLOWED_TOKENS.contains(token)) {
+          throw new InvalidPlayerTokenException("Invalid token: " + token +
+            ". Allowed: " + String.join(", ", ALLOWED_TOKENS));
+        }
+
+        if (usedTokens.contains(token)) {
+          throw new BoardGameException("Duplicate token: " + token);
+        }
+
+        players.add(new Player(name, game, token));
+        usedTokens.add(token);
       }
+
+      if (players.isEmpty()) {
+        throw new BoardGameException("No players found in file");
+      }
+
       return players;
+
     } catch (IOException e) {
-      throw new BoardGameException("Could not read file " + fileName + ": " + e.getMessage(), e);
+      throw new BoardGameException("Cannot read player file: " + fileName, e);
     }
   }
 
   @Override
   public void writeToFile(List<Player> players, String filename) throws BoardGameException {
     try (FileWriter writer = new FileWriter(filename)) {
-      // Write header
-      writer.write("Player,PlayerToken\n");
+      writer.write("PlayerName,PlayerToken\n");
 
-      // Write each player
       for (Player player : players) {
         String token = player.getTokenType();
 
-        // Validate token before writing
         if (!ALLOWED_TOKENS.contains(token)) {
-          throw new InvalidPlayerTokenException(
-            "Invalid token type: " + token + ". Allowed tokens are: " +
-              String.join(", ", ALLOWED_TOKENS));
+          throw new InvalidPlayerTokenException("Invalid token: " + token);
         }
 
         writer.write(player.getName() + "," + token + "\n");
       }
+
     } catch (IOException e) {
-      throw new BoardGameException("Error writing players to file: " + filename, e);
+      throw new BoardGameException("Cannot write player file: " + filename, e);
     }
   }
 

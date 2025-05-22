@@ -12,7 +12,17 @@ public class Player {
   private boolean skipsNextTurn = false;
 
   public Player(String name, BoardGame game, String tokenType) {
-    this.name = name;
+    if (name == null || name.trim().isEmpty()) {
+      throw new IllegalArgumentException("Player name cannot be null or empty");
+    }
+    if (game == null) {
+      throw new IllegalArgumentException("BoardGame cannot be null");
+    }
+    if (tokenType == null || tokenType.trim().isEmpty()) {
+      throw new IllegalArgumentException("Token type cannot be null or empty");
+    }
+
+    this.name = name.trim();
     this.game = game;
     this.tokenType = tokenType;
   }
